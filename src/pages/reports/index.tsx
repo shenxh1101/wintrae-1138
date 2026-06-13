@@ -5,12 +5,14 @@ import classnames from 'classnames';
 import styles from './index.module.scss';
 import { categoryProfits, memberRepurchases, dailyReports } from '@/data/reports';
 import { formatCurrency, formatNumber, formatPercent } from '@/utils/format';
+import { useRetailStore } from '@/store';
 
 type TabType = 'category' | 'member' | 'daily';
 
 const ReportsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('category');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const dailyExports = useRetailStore((s) => s.dailyExports);
 
   usePullDownRefresh(() => {
     console.log('[Reports] 下拉刷新');
@@ -32,20 +34,7 @@ const ReportsPage: React.FC = () => {
   const maxRepurchase = Math.max(...memberRepurchases.map((m) => m.repurchaseRate));
 
   const handleExport = () => {
-    console.log('[Reports] 导出日结摘要');
-    Taro.showModal({
-      title: '导出日结摘要',
-      content: '将生成近7天的门店经营报表，包含销售、毛利、客流和会员数据。是否确认导出？',
-      success: (res) => {
-        if (res.confirm) {
-          Taro.showLoading({ title: '生成中...' });
-          setTimeout(() => {
-            Taro.hideLoading();
-            Taro.showToast({ title: '导出成功', icon: 'success' });
-          }, 1500);
-        }
-      }
-    });
+    Taro.navigateTo({ url: '/pages/daily-export/index' });
   };
 
   const handleDailySummary = () => {
@@ -80,7 +69,21 @@ const ReportsPage: React.FC = () => {
           📊 今日日结
         </Button>
         <Button className={styles.actionBtn} onClick={handleExport}>
-          📤 导出报表
+          📤 日结导出中心
+          {dailyExports.length > 0 && (
+            <Text
+              style={{
+                marginLeft: 8,
+                fontSize: 20,
+                background: '#ff7d00',
+                color: '#fff',
+                borderRadius: 20,
+                padding: '2rpx 12rpx'
+              }}
+            >
+              {dailyExports.length}
+            </Text>
+          )}
         </Button>
       </View>
 

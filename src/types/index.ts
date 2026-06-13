@@ -157,3 +157,40 @@ export interface DailyReport {
   traffic: number;
   newMembers: number;
 }
+
+export type InspectionIssueType = 'stock' | 'price' | 'display' | 'clean' | 'other';
+export type InspectionIssueStatus = 'pending' | 'processing' | 'resolved';
+
+export interface InspectionIssue {
+  id: string;
+  type: InspectionIssueType;
+  title: string;
+  description: string;
+  location: string;
+  photos: string[];
+  status: InspectionIssueStatus;
+  createdAt: string;
+  reporter: string;
+  linkedTaskId?: string;
+  linkedReplenishment?: boolean;
+}
+
+export interface DailyExportRecord {
+  id: string;
+  date: string;
+  exportedAt: string;
+  exportedBy: string;
+  sales: number;
+  orders: number;
+  profit: number;
+  profitRate: number;
+  traffic: number;
+  avgOrder: number;
+  newMembers: number;
+  memberCount: number;
+  nearExpiryCount: number;
+  lowStockCount: number;
+  tasksCompleted: number;
+  tasksTotal: number;
+  remarks?: string;
+}

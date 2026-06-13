@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, Button } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
-import { tasks, employees } from '@/data/tasks';
-import { Task, Employee } from '@/types';
+import { useRetailStore } from '@/store';
+import { employees } from '@/data/tasks';
 import { getStatusText, getPriorityText } from '@/utils/format';
+import { Task } from '@/types';
 
 const TaskDetailPage: React.FC = () => {
-  const [task, setTask] = useState<Task>(tasks[0]);
-  const assignee = employees.find((e) => e.name === task.assignee) || employees[0];
+  const router = useRouter();
+  const taskId = router.params.id || 'T001';
+  const getTaskById = useRetailStore((s) => s.getTaskById);
+  const updateTask = useRetailStore((s) => s.updateTask);
+  const addTask = useRetailStore((s) => s.addTask);
+  const [task, setTask] = useState<Task | undefined>(() => getTaskById(taskId));
+
+  const assignee = employees.find((e) => e.name === task?.assignee) || employees[0];
+
+  const refreshTask = () => setTask(getTaskById(taskId));
 
   const getTypeClass = (type: string) => {
     switch (type) {
@@ -23,88 +32,36 @@ const TaskDetailPage: React.FC = () => {
         return styles.typeGuide;
     }
   };
+  const getTypeIcon = (t: string) => (t === 'guide' ? '👋' : t === 'clean' ? '🧹' : '🛍️');
+  const getTypeName = (t: string) =>
+    t === 'guide' ? '导购任务' : t === 'clean' ? '清洁任务' : '陈列任务';
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'guide':
-        return '👋';
-      case 'clean':
-        return '🧹';
-      case 'display':
-        return '🛍️';
-      default:
-        return '📋';
-    }
-  };
+  const getStatusClass = (s: string) =>
+    s === 'pending'
+      ? styles.statusPending
+      : s === 'doing'
+      ? styles.statusDoing
+      : styles.statusCompleted;
 
-  const getTypeName = (type: string) => {
-    switch (type) {
-      case 'guide':
-        return '导购任务';
-      case 'clean':
-        return '清洁任务';
-      case 'display':
-        return '陈列任务';
-      default:
-        return '普通任务';
-    }
-  };
+  const getPriorityClass = (p: string) =>
+    p === 'high'
+      ? styles.priorityHigh
+      : p === 'medium'
+      ? styles.priorityMedium
+      : styles.priorityLow;
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return styles.statusPending;
-      case 'doing':
-        return styles.statusDoing;
-      case 'completed':
-        return styles.statusCompleted;
-      default:
-        return styles.statusPending;
-    }
-  };
-
-  const getPriorityClass = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return styles.priorityHigh;
-      case 'medium':
-        return styles.priorityMedium;
-      case 'low':
-        return styles.priorityLow;
-      default:
-        return styles.priorityMedium;
-    }
-  };
-
-  const getStatusDotClass = (status: string) => {
-    switch (status) {
-      case 'on':
-        return styles.dotOn;
-      case 'busy':
-        return styles.dotBusy;
-      default:
-        return styles.dotOff;
-    }
-  };
-
-  const getStatusTextForEmp = (status: string) => {
-    switch (status) {
-      case 'on':
-        return '在岗';
-      case 'busy':
-        return '忙碌';
-      default:
-        return '离岗';
-    }
-  };
+  const getStatusDotClass = (s: string) =>
+    s === 'on' ? styles.dotOn : s === 'busy' ? styles.dotBusy : styles.dotOff;
+  const getStatusTextForEmp = (s: string) => (s === 'on' ? '在岗' : s === 'busy' ? '忙碌' : '离岗');
 
   const handleStart = () => {
     Taro.showModal({
       title: '开始任务',
-      content: `确认开始执行任务「${task.title}」？`,
+      content: `确认开始执行任务「${task?.title}」？`,
       success: (res) => {
         if (res.confirm) {
-          setTask((prev) => ({ ...prev, status: 'doing' as const }));
+          updateTask(taskId, { status: 'doing' });
+          refreshTask();
           Taro.showToast({ title: '任务已开始', icon: 'success' });
         }
       }
@@ -114,15 +71,18 @@ const TaskDetailPage: React.FC = () => {
   const handleComplete = () => {
     Taro.showModal({
       title: '完成任务',
-      content: `确认任务「${task.title}」已完成？`,
+      content: `确认任务「${task?.title}」已完成？`,
+      editable: true,
+      placeholderText: '填写完成备注（可选）',
       success: (res) => {
         if (res.confirm) {
           Taro.showLoading({ title: '提交中...' });
           setTimeout(() => {
             Taro.hideLoading();
-            setTask((prev) => ({ ...prev, status: 'completed' as const }));
+            updateTask(taskId, { status: 'completed' });
+            refreshTask();
             Taro.showToast({ title: '任务已完成', icon: 'success' });
-          }, 800);
+          }, 600);
         }
       }
     });
@@ -138,7 +98,8 @@ const TaskDetailPage: React.FC = () => {
           content: `确认将任务转派给「${targetEmp.name}」？`,
           success: (modalRes) => {
             if (modalRes.confirm) {
-              setTask((prev) => ({ ...prev, assignee: targetEmp.name }));
+              updateTask(taskId, { assignee: targetEmp.name });
+              refreshTask();
               Taro.showToast({ title: '转派成功', icon: 'success' });
             }
           }
@@ -154,6 +115,10 @@ const TaskDetailPage: React.FC = () => {
       placeholderText: '输入任务执行备注...',
       success: (res) => {
         if (res.confirm && res.content) {
+          updateTask(taskId, {
+            description: task!.description + `\n【备注】${res.content}`
+          });
+          refreshTask();
           Taro.showToast({ title: '备注已添加', icon: 'success' });
         }
       }
@@ -161,7 +126,7 @@ const TaskDetailPage: React.FC = () => {
   };
 
   const handleUrgent = () => {
-    if (task.priority === 'high') {
+    if (task?.priority === 'high') {
       Taro.showToast({ title: '已是最高优先级', icon: 'none' });
       return;
     }
@@ -170,12 +135,21 @@ const TaskDetailPage: React.FC = () => {
       content: '确认将该任务提升为最高优先级？',
       success: (res) => {
         if (res.confirm) {
-          setTask((prev) => ({ ...prev, priority: 'high' as const }));
+          updateTask(taskId, { priority: 'high' });
+          refreshTask();
           Taro.showToast({ title: '已设为紧急', icon: 'success' });
         }
       }
     });
   };
+
+  if (!task) {
+    return (
+      <View className={styles.page}>
+        <Text style={{ padding: 32, color: '#86909c' }}>任务不存在或已删除</Text>
+      </View>
+    );
+  }
 
   const timeline = [
     {
@@ -185,7 +159,7 @@ const TaskDetailPage: React.FC = () => {
       done: true
     },
     {
-      time: task.status !== 'pending' ? '2026-06-14 09:30' : '',
+      time: task.status !== 'pending' ? task.createdAt : '',
       content: '任务开始执行',
       desc: task.status !== 'pending' ? `${task.assignee} 已开始执行` : '待开始',
       done: task.status !== 'pending'
@@ -203,12 +177,11 @@ const TaskDetailPage: React.FC = () => {
       return (
         <View className={styles.bottomBar}>
           <Button className={classnames(styles.actionBtn, styles.btnPrimary)} onClick={handleAddNote}>
-            查看详情
+            添加备注
           </Button>
         </View>
       );
     }
-
     if (task.status === 'pending') {
       return (
         <View className={styles.bottomBar}>
@@ -224,7 +197,6 @@ const TaskDetailPage: React.FC = () => {
         </View>
       );
     }
-
     return (
       <View className={styles.bottomBar}>
         <Button className={classnames(styles.actionBtn, styles.btnSecondary)} onClick={handleAddNote}>
@@ -271,9 +243,7 @@ const TaskDetailPage: React.FC = () => {
           <View className={styles.assigneeInfo}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text className={styles.assigneeName}>{task.assignee}</Text>
-              <View
-                className={classnames(styles.statusDot, getStatusDotClass(assignee.status))}
-              />
+              <View className={classnames(styles.statusDot, getStatusDotClass(assignee.status))} />
             </View>
             <Text className={styles.assigneeRole}>
               {assignee.role} · {getStatusTextForEmp(assignee.status)} · 今日完成

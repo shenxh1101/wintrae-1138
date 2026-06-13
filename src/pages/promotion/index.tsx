@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Button } from '@tarojs/components';
-import Taro, { usePullDownRefresh } from '@tarojs/taro';
+import Taro, { usePullDownRefresh, useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
 import EmptyState from '@/components/EmptyState';
-import { promotions } from '@/data/promotion';
+import { useRetailStore } from '@/store';
 import { formatDate } from '@/utils/format';
 
 type TabType = 'all' | 'pending' | 'ongoing' | 'completed';
@@ -12,32 +12,37 @@ type TabType = 'all' | 'pending' | 'ongoing' | 'completed';
 const PromotionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const promotions = useRetailStore((s) => s.promotions);
+  const updatePromotion = useRetailStore((s) => s.updatePromotion);
+
+  useDidShow(() => {
+    // 页面显示时自动触发重渲染（store 订阅会自动处理）
+  });
 
   usePullDownRefresh(() => {
-    console.log('[Promotion] 下拉刷新');
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
-    }, 1000);
+    }, 800);
   });
 
   const pendingCount = promotions.filter((p) => p.status === 'pending').length;
   const ongoingCount = promotions.filter((p) => p.status === 'ongoing').length;
   const completedCount = promotions.filter((p) => p.status === 'completed').length;
 
-  const filteredPromotions = promotions.filter((p) => {
-    if (activeTab === 'all') return true;
-    return p.status === activeTab;
-  });
+  const filteredPromotions = useMemo(
+    () => (activeTab === 'all' ? promotions : promotions.filter((p) => p.status === activeTab)),
+    [promotions, activeTab]
+  );
 
-  const getProgress = (p: typeof promotions[0]) => {
+  const getProgress = (p: (typeof promotions)[0]) => {
+    if (!p.displayRequired) return 100;
     let progress = 0;
-    const total = 2;
     if (p.confirmed) progress++;
     if (p.photoUploaded) progress++;
-    return Math.round((progress / total) * 100);
+    return Math.round((progress / 2) * 100);
   };
 
   const getStatusClass = (status: string) => {
@@ -52,37 +57,41 @@ const PromotionPage: React.FC = () => {
     return '已完成';
   };
 
-  const handleAction = (action: string, promo: typeof promotions[0]) => {
-    console.log('[Promotion] 操作:', action, promo.name);
+  const handleAction = (action: string, promo: (typeof promotions)[0]) => {
     if (action === 'confirm') {
       Taro.showModal({
         title: '确认促销方案',
         content: `请确认已了解"${promo.name}"的全部要求，确认后将开始执行。`,
         success: (res) => {
           if (res.confirm) {
+            updatePromotion(promo.id, { confirmed: true });
             Taro.showToast({ title: '已确认', icon: 'success' });
           }
         }
       });
     } else if (action === 'photo') {
       Taro.showActionSheet({
-        itemList: ['拍照上传', '从相册选择', '查看已上传'],
+        itemList: ['拍照上传', '从相册选择', '查看详情'],
         success: (res) => {
           if (res.tapIndex < 2) {
-            Taro.showToast({ title: '模拟拍照上传', icon: 'success' });
-          } else {
-            Taro.navigateTo({
-              url: `/pages/promotion-detail/index?id=${promo.id}`,
-              fail: () => Taro.showToast({ title: '功能开发中', icon: 'none' })
+            Taro.chooseImage({
+              count: 3,
+              success: () => {
+                Taro.showLoading({ title: '上传中...' });
+                setTimeout(() => {
+                  Taro.hideLoading();
+                  updatePromotion(promo.id, { photoUploaded: true });
+                  Taro.showToast({ title: '上传成功', icon: 'success' });
+                }, 1000);
+              }
             });
+          } else {
+            Taro.navigateTo({ url: `/pages/promotion-detail/index?id=${promo.id}` });
           }
         }
       });
     } else if (action === 'detail') {
-      Taro.navigateTo({
-        url: `/pages/promotion-detail/index?id=${promo.id}`,
-        fail: () => Taro.showToast({ title: '功能开发中', icon: 'none' })
-      });
+      Taro.navigateTo({ url: `/pages/promotion-detail/index?id=${promo.id}` });
     }
   };
 
@@ -141,7 +150,11 @@ const PromotionPage: React.FC = () => {
           {filteredPromotions.map((promo) => {
             const progress = getProgress(promo);
             return (
-              <View key={promo.id} className={styles.promoCard}>
+              <View
+                key={promo.id}
+                className={styles.promoCard}
+                onClick={() => handleAction('detail', promo)}
+              >
                 <View className={styles.promoHeader}>
                   <View className={styles.promoInfo}>
                     <Text className={styles.promoTitle}>{promo.name}</Text>
@@ -161,10 +174,7 @@ const PromotionPage: React.FC = () => {
                     <Text className={styles.progressValue}>{progress}%</Text>
                   </View>
                   <View className={styles.progressBar}>
-                    <View
-                      className={styles.progressFill}
-                      style={{ width: `${progress}%` }}
-                    />
+                    <View className={styles.progressFill} style={{ width: `${progress}%` }} />
                   </View>
                 </View>
 
@@ -176,9 +186,7 @@ const PromotionPage: React.FC = () => {
                       </Text>
                     ))}
                     {promo.products.length > 3 && (
-                      <Text className={styles.promoItemTag}>
-                        +{promo.products.length - 3}项
-                      </Text>
+                      <Text className={styles.promoItemTag}>+{promo.products.length - 3}项</Text>
                     )}
                   </View>
 
@@ -208,21 +216,9 @@ const PromotionPage: React.FC = () => {
                       </View>
                     </View>
                   )}
-
-                  {promo.photoUploaded && (
-                    <View className={styles.uploadPreview}>
-                      <View className={classnames(styles.photoBox, styles.photoBoxDone)}>
-                        ✓
-                      </View>
-                      <View className={classnames(styles.photoBox, styles.photoBoxDone)}>
-                        ✓
-                      </View>
-                      <View className={styles.photoBox}>+</View>
-                    </View>
-                  )}
                 </View>
 
-                <View className={styles.promoActions}>
+                <View className={styles.promoActions} onClick={(e) => e.stopPropagation()}>
                   {promo.status === 'pending' && !promo.confirmed && (
                     <>
                       <Button

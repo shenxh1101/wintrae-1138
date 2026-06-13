@@ -10,7 +10,10 @@ export default defineAppConfig({
     'pages/near-expiry/index',
     'pages/promotion-detail/index',
     'pages/task-detail/index',
-    'pages/handover/index'
+    'pages/handover/index',
+    'pages/daily-export/index',
+    'pages/inspection-report/index',
+    'pages/inspection-list/index'
   ],
   window: {
     backgroundTextStyle: 'light',

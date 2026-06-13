@@ -143,8 +143,24 @@ export const quickActions: QuickAction[] = [
     id: '8',
     name: '日结导出',
     icon: '📊',
-    path: '/pages/reports/index',
+    path: '/pages/daily-export/index',
     color: '#fa8c16',
     bgColor: 'rgba(250, 140, 22, 0.1)'
+  },
+  {
+    id: '9',
+    name: '巡店上报',
+    icon: '🔍',
+    path: '/pages/inspection-report/index',
+    color: '#f53f3f',
+    bgColor: 'rgba(245, 63, 63, 0.1)'
+  },
+  {
+    id: '10',
+    name: '问题记录',
+    icon: '📝',
+    path: '/pages/inspection-list/index',
+    color: '#165dff',
+    bgColor: 'rgba(22, 93, 255, 0.1)'
   }
 ];

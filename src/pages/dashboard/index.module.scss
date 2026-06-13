@@ -250,3 +250,118 @@
   border-radius: 50%;
   opacity: 0.1;
 }
+
+.alertCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.alertHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.alertTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.alertMore {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.alertItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-sm;
+  gap: $spacing-sm;
+
+  &:last-of-type {
+    margin-bottom: $spacing-md;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.alertOrange {
+  background: rgba(255, 125, 0, 0.08);
+  border-left: 4rpx solid $color-warning;
+}
+
+.alertPurple {
+  background: rgba(114, 46, 209, 0.08);
+  border-left: 4rpx solid #722ed1;
+}
+
+.alertBlue {
+  background: rgba(22, 93, 255, 0.08);
+  border-left: 4rpx solid $color-primary;
+}
+
+.alertIcon {
+  font-size: 40rpx;
+  width: 56rpx;
+  text-align: center;
+}
+
+.alertInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.alertLabel {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 2rpx;
+}
+
+.alertDesc {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alertBadge {
+  flex-shrink: 0;
+  min-width: 40rpx;
+  height: 40rpx;
+  padding: 0 12rpx;
+  background: $color-error;
+  color: $color-text-white;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reportEntry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-sm;
+  background: rgba(255, 125, 0, 0.06);
+  border-radius: $radius-md;
+  border: 1rpx dashed rgba(255, 125, 0, 0.3);
+
+  &:active {
+    opacity: 0.8;
+  }
+}

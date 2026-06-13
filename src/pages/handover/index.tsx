@@ -3,9 +3,9 @@ import { View, Text, Button, Textarea } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
-import { handoverRecords as initialRecords, employees } from '@/data/tasks';
+import { useRetailStore } from '@/store';
+import { employees } from '@/data/tasks';
 import { formatCurrency } from '@/utils/format';
-import { HandoverRecord } from '@/types';
 
 type ShiftType = 'morning' | 'afternoon' | 'night';
 
@@ -23,7 +23,9 @@ const HandoverPage: React.FC = () => {
   const [remarks, setRemarks] = useState(
     '饮料销售火爆，注意补货，库存不足的状态：可乐仅剩24罐'
   );
-  const [records] = useState<HandoverRecord[]>(initialRecords);
+  const records = useRetailStore((s) => s.handoverRecords);
+  const addHandoverRecord = useRetailStore((s) => s.addHandoverRecord);
+  const addTask = useRetailStore((s) => s.addTask);
 
   const shifts: { key: ShiftType; name: string; time: string }[] = [
     { key: 'morning', name: '早班', time: '07:00-15:00' },
@@ -37,31 +39,23 @@ const HandoverPage: React.FC = () => {
   const selectHandedBy = () => {
     Taro.showActionSheet({
       itemList: employees.map((e) => e.name),
-      success: (res) => {
-        setHandedBy(employees[res.tapIndex].name);
-      }
+      success: (res) => setHandedBy(employees[res.tapIndex].name)
     });
   };
 
   const selectReceivedBy = () => {
     Taro.showActionSheet({
       itemList: employees.filter((e) => e.status !== 'off').map((e) => e.name),
-      success: (res) => {
-        setReceivedBy(employees.filter((e) => e.status !== 'off')[res.tapIndex].name);
-      }
+      success: (res) =>
+        setReceivedBy(employees.filter((e) => e.status !== 'off')[res.tapIndex].name)
     });
   };
 
   const handleCashInput = (val: string) => {
-    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') {
-      setCashAmount(val);
-    }
+    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') setCashAmount(val);
   };
-
   const handleCardInput = (val: string) => {
-    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') {
-      setCardAmount(val);
-    }
+    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') setCardAmount(val);
   };
 
   const handleAddItem = () => {
@@ -83,9 +77,65 @@ const HandoverPage: React.FC = () => {
       title: '移除物品',
       content: `确认移除「${items[idx]}」？`,
       success: (res) => {
-        if (res.confirm) {
-          setItems((prev) => prev.filter((_, i) => i !== idx));
-        }
+        if (res.confirm) setItems((prev) => prev.filter((_, i) => i !== idx));
+      }
+    });
+  };
+
+  const handleConvertRemarksToTasks = () => {
+    if (!remarks.trim()) {
+      Taro.showToast({ title: '备注为空', icon: 'none' });
+      return;
+    }
+    Taro.showActionSheet({
+      itemList: employees.filter((e) => e.status !== 'off').map((e) => e.name),
+      success: (res) => {
+        const emp = employees.filter((e) => e.status !== 'off')[res.tapIndex];
+        Taro.showModal({
+          title: '转成任务',
+          content: `将备注转成任务派给「${emp.name}」？\n任务内容：${remarks}`,
+          success: (r2) => {
+            if (r2.confirm) {
+              const d = new Date();
+              d.setHours(d.getHours() + 4);
+              const pad = (n: number) => n.toString().padStart(2, '0');
+              addTask({
+                title: '交接班待办事项跟进',
+                type: 'guide',
+                assignee: emp.name,
+                deadline: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+                priority: 'high',
+                description: `【交接班】${remarks}\n交班人：${handedBy}`
+              });
+              Taro.showToast({ title: '已生成任务', icon: 'success' });
+            }
+          }
+        });
+      }
+    });
+  };
+
+  const handleConvertItemsToTasks = () => {
+    Taro.showActionSheet({
+      itemList: employees.filter((e) => e.status !== 'off').map((e) => e.name),
+      success: (res) => {
+        const emp = employees.filter((e) => e.status !== 'off')[res.tapIndex];
+        const d = new Date();
+        d.setHours(d.getHours() + 4);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        items.forEach((item, idx) => {
+          setTimeout(() => {
+            addTask({
+              title: `交接物品跟进：${item}`,
+              type: 'display',
+              assignee: emp.name,
+              deadline: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+              priority: 'medium',
+              description: `交接班物品确认：${item}\n交班人：${handedBy}`
+            });
+          }, idx * 200);
+        });
+        Taro.showToast({ title: `已生成${items.length}个任务`, icon: 'success' });
       }
     });
   };
@@ -100,7 +150,7 @@ const HandoverPage: React.FC = () => {
         `交班人：${handedBy}\n` +
         `接班人：${receivedBy}\n` +
         `现金金额：${formatCurrency(cashVal)}\n` +
-        `刷卡金额：${formatCurrency(cardVal)}\n` +
+        `移动支付：${formatCurrency(cardVal)}\n` +
         `总金额：${formatCurrency(cashVal + cardVal)}\n` +
         `交接物品：${items.length}项\n` +
         `备注：${remarks || '无'}`,
@@ -121,6 +171,19 @@ const HandoverPage: React.FC = () => {
           Taro.showLoading({ title: '提交中...' });
           setTimeout(() => {
             Taro.hideLoading();
+            const d = new Date();
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            addHandoverRecord({
+              date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+              shift: shifts.find((s) => s.key === shift)?.name || '',
+              handedBy,
+              receivedBy,
+              cashAmount: parseFloat(cashAmount) || 0,
+              cardAmount: parseFloat(cardAmount) || 0,
+              items: [...items],
+              remarks,
+              status: 'confirmed'
+            });
             Taro.showModal({
               title: '交接班成功',
               content:
@@ -130,7 +193,7 @@ const HandoverPage: React.FC = () => {
               showCancel: false,
               success: () => Taro.navigateBack()
             });
-          }, 1000);
+          }, 800);
         }
       }
     });
@@ -231,7 +294,17 @@ const HandoverPage: React.FC = () => {
       </View>
 
       <View className={styles.section}>
-        <Text className={styles.sectionTitle}>📦 交接物品 ({items.length}项)</Text>
+        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text className={styles.sectionTitle}>📦 交接物品 ({items.length}项)</Text>
+          {items.length > 0 && (
+            <Text
+              style={{ fontSize: 12, color: '#165dff' }}
+              onClick={handleConvertItemsToTasks}
+            >
+              一键转任务 ›
+            </Text>
+          )}
+        </View>
         <View className={styles.itemsList}>
           {items.map((item, idx) => (
             <View key={idx} className={styles.itemRow} onClick={() => handleRemoveItem(idx)}>
@@ -248,7 +321,17 @@ const HandoverPage: React.FC = () => {
       </View>
 
       <View className={styles.section}>
-        <Text className={styles.sectionTitle}>📝 交班备注</Text>
+        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text className={styles.sectionTitle}>📝 交班备注</Text>
+          {remarks.trim() && (
+            <Text
+              style={{ fontSize: 12, color: '#f53f3f', fontWeight: 500 }}
+              onClick={handleConvertRemarksToTasks}
+            >
+              ⚡ 一键转任务 ›
+            </Text>
+          )}
+        </View>
         <Textarea
           className={styles.remarksInput}
           placeholder="请输入交接班注意事项、待办事项等..."
@@ -274,7 +357,7 @@ const HandoverPage: React.FC = () => {
                     现金：{formatCurrency(r.cashAmount)} · 移动支付：
                     {formatCurrency(r.cardAmount)}
                   </Text>
-                  {r.remarks && <Text>{"\n"}备注：{r.remarks}</Text>}
+                  {r.remarks && <Text>{'\n'}备注：{r.remarks}</Text>}
                 </View>
                 <Text
                   className={classnames(

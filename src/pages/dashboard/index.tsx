@@ -8,10 +8,12 @@ import QuickEntry from '@/components/QuickEntry';
 import NoticeCard from '@/components/NoticeCard';
 import { dashboardStats, trafficTrend, salesTrend, notices, quickActions } from '@/data/dashboard';
 import { formatCurrency, formatNumber, formatPercent } from '@/utils/format';
+import { useRetailStore } from '@/store';
 
 const DashboardPage: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'sales' | 'traffic'>('sales');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { inspectionIssues, tasks, promotions } = useRetailStore();
 
   usePullDownRefresh(() => {
     console.log('[Dashboard] 下拉刷新');
@@ -35,6 +37,10 @@ const DashboardPage: React.FC = () => {
   );
 
   const unreadCount = notices.filter((n) => !n.read).length;
+  const pendingInspectionCount = inspectionIssues.filter((i) => i.status === 'pending').length;
+  const pendingInspections = inspectionIssues.filter((i) => i.status === 'pending').slice(0, 3);
+  const pendingTaskCount = tasks.filter((t) => t.status === 'pending').length;
+  const ongoingPromotions = promotions.filter((p) => p.status === 'ongoing').length;
 
   return (
     <View className={styles.page}>
@@ -97,6 +103,72 @@ const DashboardPage: React.FC = () => {
         <View className={styles.section}>
           <QuickEntry actions={quickActions} />
         </View>
+
+        {(pendingInspectionCount > 0 || pendingTaskCount > 0 || ongoingPromotions > 0) && (
+          <View className={styles.alertCard}>
+            <View className={styles.alertHeader}>
+              <Text className={styles.alertTitle}>⚠️ 今日待处理</Text>
+              <Text
+                className={styles.alertMore}
+                onClick={() => Taro.navigateTo({ url: '/pages/inspection-list/index' })}
+              >
+                查看全部 ›
+              </Text>
+            </View>
+            {pendingInspectionCount > 0 && (
+              <View
+                className={classnames(styles.alertItem, styles.alertOrange)}
+                onClick={() => Taro.navigateTo({ url: '/pages/inspection-list/index' })}
+              >
+                <Text className={styles.alertIcon}>🔍</Text>
+                <View className={styles.alertInfo}>
+                  <Text className={styles.alertLabel}>巡店问题待处理</Text>
+                  <Text className={styles.alertDesc}>
+                    {pendingInspectionCount} 条问题需要跟进
+                    {pendingInspections.length > 0 &&
+                      `：${pendingInspections.map((p) => p.title).slice(0, 2).join('、')}`}
+                  </Text>
+                </View>
+                <Text className={styles.alertBadge}>{pendingInspectionCount}</Text>
+              </View>
+            )}
+            {pendingTaskCount > 0 && (
+              <View
+                className={classnames(styles.alertItem, styles.alertPurple)}
+                onClick={() => Taro.switchTab({ url: '/pages/tasks/index' })}
+              >
+                <Text className={styles.alertIcon}>📋</Text>
+                <View className={styles.alertInfo}>
+                  <Text className={styles.alertLabel}>员工任务待分配/执行</Text>
+                  <Text className={styles.alertDesc}>{pendingTaskCount} 条任务等待处理</Text>
+                </View>
+                <Text className={styles.alertBadge}>{pendingTaskCount}</Text>
+              </View>
+            )}
+            {ongoingPromotions > 0 && (
+              <View
+                className={classnames(styles.alertItem, styles.alertBlue)}
+                onClick={() => Taro.switchTab({ url: '/pages/promotion/index' })}
+              >
+                <Text className={styles.alertIcon}>🎯</Text>
+                <View className={styles.alertInfo}>
+                  <Text className={styles.alertLabel}>促销活动执行中</Text>
+                  <Text className={styles.alertDesc}>{ongoingPromotions} 场活动正在推进</Text>
+                </View>
+                <Text className={styles.alertBadge}>{ongoingPromotions}</Text>
+              </View>
+            )}
+            <View
+              className={styles.reportEntry}
+              onClick={() => Taro.navigateTo({ url: '/pages/inspection-report/index' })}
+            >
+              <Text style={{ fontSize: 28 }}>📸</Text>
+              <Text style={{ fontSize: 24, color: '#ff7d00', fontWeight: 600, marginLeft: 8 }}>
+                巡店发现新问题？立即上报 ›
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View className={styles.chartCard}>
           <View className={styles.chartHeader}>
