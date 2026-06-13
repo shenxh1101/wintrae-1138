@@ -1,0 +1,308 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-lg $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+.headerCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.taskType {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 6rpx 20rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  margin-bottom: $spacing-md;
+  font-weight: $font-weight-medium;
+}
+
+.typeGuide {
+  background: rgba(22, 93, 255, 0.1);
+  color: $color-primary;
+}
+
+.typeClean {
+  background: rgba(255, 125, 0, 0.1);
+  color: $color-warning;
+}
+
+.typeDisplay {
+  background: rgba(114, 46, 209, 0.1);
+  color: #722ed1;
+}
+
+.taskTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  line-height: 1.4;
+}
+
+.taskMeta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.metaLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.metaValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.statusPending {
+  background: rgba(255, 125, 0, 0.1);
+  color: $color-warning;
+}
+
+.statusDoing {
+  background: rgba(22, 93, 255, 0.1);
+  color: $color-primary;
+}
+
+.statusCompleted {
+  background: rgba(0, 180, 42, 0.1);
+  color: $color-success;
+}
+
+.priorityBadge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.priorityHigh {
+  background: rgba(245, 63, 63, 0.1);
+  color: $color-error;
+}
+
+.priorityMedium {
+  background: rgba(255, 125, 0, 0.1);
+  color: $color-warning;
+}
+
+.priorityLow {
+  background: rgba(22, 93, 255, 0.1);
+  color: $color-primary;
+}
+
+.infoSection {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.descText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.8;
+  background: $color-bg-page;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+}
+
+.assigneeCard {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+}
+
+.avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $color-primary-light, $color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-text-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  margin-right: $spacing-md;
+}
+
+.assigneeInfo {
+  flex: 1;
+}
+
+.assigneeName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.assigneeRole {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statusDot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  margin-left: $spacing-sm;
+}
+
+.dotOn {
+  background: $color-success;
+}
+
+.dotBusy {
+  background: $color-warning;
+}
+
+.dotOff {
+  background: $color-text-tertiary;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 40rpx;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 12rpx;
+  top: 8rpx;
+  bottom: 8rpx;
+  width: 4rpx;
+  background: $color-divider;
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: $spacing-lg;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: -40rpx;
+  top: 8rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: $color-primary;
+  border: 4rpx solid $color-bg-card;
+  box-shadow: 0 0 0 4rpx $color-primary-bg;
+}
+
+.timelineDotDone {
+  background: $color-success;
+  box-shadow: 0 0 0 4rpx rgba(0, 180, 42, 0.1);
+}
+
+.timelineTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+}
+
+.timelineContent {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.timelineDesc {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  margin-top: $spacing-xs;
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $page-padding;
+  background: $color-bg-card;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: $spacing-md;
+}
+
+.actionBtn {
+  @include button-reset;
+  flex: 1;
+  height: 88rpx;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.btnSecondary {
+  background: $color-bg-page;
+  color: $color-text-secondary;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, $color-primary-light, $color-primary);
+  color: $color-text-white;
+}
+
+.btnSuccess {
+  background: linear-gradient(135deg, #52c41a, $color-success);
+  color: $color-text-white;
+}
+
+.btnDanger {
+  background: linear-gradient(135deg, #ff7d7d, $color-error);
+  color: $color-text-white;
+}

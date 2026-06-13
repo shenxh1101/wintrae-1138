@@ -1,0 +1,84 @@
+@use '@/styles/variables.scss' as *;
+
+.statCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.label {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-normal;
+}
+
+.iconWrap {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
+
+.value {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.2;
+  margin-bottom: $spacing-xs;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.growth {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  padding: 2rpx $spacing-sm;
+  border-radius: $radius-xs;
+}
+
+.growthUp {
+  color: $color-success;
+  background: $color-success-bg;
+}
+
+.growthDown {
+  color: $color-error;
+  background: $color-error-bg;
+}
+
+.subInfo {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.gradientDecor {
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  opacity: 0.08;
+}

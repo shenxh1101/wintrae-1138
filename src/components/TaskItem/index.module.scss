@@ -1,0 +1,104 @@
+@use '@/styles/variables.scss' as *;
+
+.taskItem {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+  gap: $spacing-sm;
+}
+
+.title {
+  flex: 1;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  line-height: 1.4;
+}
+
+.statusTag {
+  font-size: $font-size-xs;
+  padding: 4rpx $spacing-sm;
+  border-radius: $radius-xs;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.statusPending {
+  background: $color-warning-bg;
+  color: $color-warning;
+}
+
+.statusDoing {
+  background: $color-primary-bg;
+  color: $color-primary;
+}
+
+.statusCompleted {
+  background: $color-success-bg;
+  color: $color-success;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.metaLabel {
+  color: $color-text-tertiary;
+}
+
+.priorityTag {
+  font-size: $font-size-xs;
+  padding: 2rpx $spacing-sm;
+  border-radius: $radius-xs;
+  font-weight: $font-weight-medium;
+}
+
+.priorityHigh {
+  background: $color-error-bg;
+  color: $color-error;
+}
+
+.priorityMedium {
+  background: $color-warning-bg;
+  color: $color-warning;
+}
+
+.priorityLow {
+  background: $color-primary-bg;
+  color: $color-primary;
+}
+
+.desc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  @include text-ellipsis-multi(2);
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}

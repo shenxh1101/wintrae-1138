@@ -1,0 +1,252 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-lg $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: $spacing-lg;
+}
+
+.storeInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.storeName {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.storeAddress {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: $spacing-xs;
+}
+
+.managerInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+}
+
+.managerName {
+  font-size: $font-size-md;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
+.dateText {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.section {
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.more {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.chartCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.chartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.chartTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.chartTabs {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.chartTab {
+  font-size: $font-size-xs;
+  padding: 4rpx $spacing-md;
+  border-radius: $radius-round;
+  color: $color-text-tertiary;
+  background: $color-bg-hover;
+}
+
+.chartTabActive {
+  color: $color-text-white;
+  background: $color-primary;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 280rpx;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+  gap: 6rpx;
+}
+
+.bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.barFill {
+  width: 100%;
+  max-width: 28rpx;
+  border-radius: $radius-xs $radius-xs 0 0;
+  background: linear-gradient(180deg, $color-primary-light 0%, $color-primary 100%);
+  min-height: 8rpx;
+  transition: height 0.3s ease;
+}
+
+.barFillPurple {
+  background: linear-gradient(180deg, #9b59ff 0%, #722ed1 100%);
+}
+
+.barLabel {
+  margin-top: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.noticeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.unreadCount {
+  font-size: $font-size-xs;
+  padding: 2rpx $spacing-sm;
+  border-radius: $radius-round;
+  background: $color-error-bg;
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}
+
+.pageBg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 520rpx;
+  background: linear-gradient(180deg, $color-primary 0%, $color-primary-light 60%, transparent 100%);
+  z-index: -1;
+}
+
+.headerInfo {
+  padding-top: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.statCardBlue {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+}
+
+.statLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.statValue {
+  font-size: 44rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.2;
+  margin-bottom: $spacing-xs;
+}
+
+.statGrowth {
+  font-size: $font-size-xs;
+  padding: 2rpx $spacing-sm;
+  border-radius: $radius-xs;
+  display: inline-block;
+  font-weight: $font-weight-medium;
+}
+
+.statGrowthUp {
+  background: $color-success-bg;
+  color: $color-success;
+}
+
+.statGrowthDown {
+  background: $color-error-bg;
+  color: $color-error;
+}
+
+.statDecor {
+  position: absolute;
+  top: -30rpx;
+  right: -30rpx;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  opacity: 0.1;
+}
