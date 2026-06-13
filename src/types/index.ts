@@ -75,6 +75,26 @@ export interface NearExpiryItem {
   category: string;
 }
 
+export type InspectionIssueType = 'stock' | 'price' | 'display' | 'clean' | 'other';
+export type InspectionIssueStatus = 'pending' | 'processing' | 'resolved';
+
+export interface InspectionIssue {
+  id: string;
+  type: InspectionIssueType;
+  title: string;
+  description: string;
+  location: string;
+  photos: string[];
+  status: InspectionIssueStatus;
+  createdAt: string;
+  reporter: string;
+  linkedTaskId?: string;
+  linkedReplenishment?: boolean;
+  linkedReplenishmentItems?: string[];
+  resolvedAt?: string;
+  resolvedNote?: string;
+}
+
 export interface ReplenishmentItem {
   id: string;
   name: string;
@@ -84,6 +104,9 @@ export interface ReplenishmentItem {
   unitPrice: number;
   supplier: string;
   selected: boolean;
+  sourceIssueId?: string;
+  sourceIssueTitle?: string;
+  sourceIssueStatus?: InspectionIssueStatus;
 }
 
 export interface Promotion {
@@ -102,13 +125,16 @@ export interface Promotion {
 export interface Task {
   id: string;
   title: string;
-  type: 'guide' | 'clean' | 'display';
+  type: 'guide' | 'clean' | 'display' | 'replenish';
   assignee: string;
   deadline: string;
   status: 'pending' | 'doing' | 'completed';
   priority: 'high' | 'medium' | 'low';
   description: string;
   createdAt: string;
+  source?: 'manual' | 'handover' | 'inspection';
+  linkedIssueId?: string;
+  linkedIssueTitle?: string;
 }
 
 export interface Employee {
@@ -158,23 +184,6 @@ export interface DailyReport {
   newMembers: number;
 }
 
-export type InspectionIssueType = 'stock' | 'price' | 'display' | 'clean' | 'other';
-export type InspectionIssueStatus = 'pending' | 'processing' | 'resolved';
-
-export interface InspectionIssue {
-  id: string;
-  type: InspectionIssueType;
-  title: string;
-  description: string;
-  location: string;
-  photos: string[];
-  status: InspectionIssueStatus;
-  createdAt: string;
-  reporter: string;
-  linkedTaskId?: string;
-  linkedReplenishment?: boolean;
-}
-
 export interface DailyExportRecord {
   id: string;
   date: string;
@@ -192,5 +201,7 @@ export interface DailyExportRecord {
   lowStockCount: number;
   tasksCompleted: number;
   tasksTotal: number;
+  inspectionNew?: number;
+  inspectionResolved?: number;
   remarks?: string;
 }

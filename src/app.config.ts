@@ -13,7 +13,8 @@ export default defineAppConfig({
     'pages/handover/index',
     'pages/daily-export/index',
     'pages/inspection-report/index',
-    'pages/inspection-list/index'
+    'pages/inspection-list/index',
+    'pages/inspection-detail/index'
   ],
   window: {
     backgroundTextStyle: 'light',

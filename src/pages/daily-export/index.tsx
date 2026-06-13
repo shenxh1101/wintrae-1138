@@ -8,7 +8,7 @@ import { dashboardStats } from '@/data/dashboard';
 import { formatCurrency, formatNumber, formatPercent } from '@/utils/format';
 
 const DailyExportPage: React.FC = () => {
-  const { dailyExports, addDailyExport, tasks } = useRetailStore();
+  const { dailyExports, addDailyExport, tasks, inspectionIssues } = useRetailStore();
   const [remarks, setRemarks] = useState('');
   const [verifyTarget] = useState(dailyReports[0]);
 
@@ -26,6 +26,18 @@ const DailyExportPage: React.FC = () => {
   const memberCount = dashboardStats.memberCount;
   const nearExpiryCount = 5;
   const lowStockCount = 4;
+
+  const todayStr = () => {
+    const d = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  const today = todayStr();
+  const todayInspectionNew = inspectionIssues.filter((i) => i.createdAt.startsWith(today)).length;
+  const todayInspectionResolved = inspectionIssues.filter(
+    (i) => i.status === 'resolved' && i.resolvedAt?.startsWith(today)
+  ).length;
 
   const handleExport = () => {
     const today = new Date();
@@ -63,15 +75,19 @@ const DailyExportPage: React.FC = () => {
     Taro.showModal({
       title: `${rec.date} 日结详情`,
       content:
-        `导出时间：${rec.exportedAt}\n` +
-        `导出人：${rec.exportedBy}\n` +
+        `📊 经营数据\n` +
         `销售额：${formatCurrency(rec.sales)} / 订单 ${rec.orders}单\n` +
         `毛利：${formatCurrency(rec.profit)}（毛利率 ${rec.profitRate.toFixed(1)}%）\n` +
         `客流：${formatNumber(rec.traffic)}人 / 客单价 ${formatCurrency(rec.avgOrder)}\n` +
-        `新会员：${rec.newMembers}人 / 会员总数 ${rec.memberCount}\n` +
-        `临期商品：${rec.nearExpiryCount}件 / 低库存：${rec.lowStockCount}项\n` +
-        `任务完成：${rec.tasksCompleted}/${rec.tasksTotal}` +
-        (rec.remarks ? `\n备注：${rec.remarks}` : ''),
+        `新会员：${rec.newMembers}人 / 会员总数 ${formatNumber(rec.memberCount)}\n\n` +
+        `📦 库存\n` +
+        `临期商品：${rec.nearExpiryCount}件 / 低库存：${rec.lowStockCount}项\n\n` +
+        `🔍 巡店\n` +
+        `新增问题：${rec.inspectionNew ?? 0}条 / 已解决：${rec.inspectionResolved ?? 0}条\n\n` +
+        `📋 任务\n` +
+        `完成进度：${rec.tasksCompleted}/${rec.tasksTotal}\n\n` +
+        `导出人：${rec.exportedBy} · ${rec.exportedAt}` +
+        (rec.remarks ? `\n\n📝 备注\n${rec.remarks}` : ''),
       showCancel: false,
       confirmText: '好的'
     });
@@ -175,6 +191,18 @@ const DailyExportPage: React.FC = () => {
                 {tasksCompleted}/{tasksTotal}
               </Text>
             </View>
+            <View className={styles.verifyRow}>
+              <Text className={styles.verifyLabel}>巡店新增问题</Text>
+              <Text className={`${styles.verifyValue} ${styles.verifyMatch}`}>
+                {todayInspectionNew} 条 ✓
+              </Text>
+            </View>
+            <View className={styles.verifyRow}>
+              <Text className={styles.verifyLabel}>巡店已解决</Text>
+              <Text className={`${styles.verifyValue} ${styles.verifyMatch}`}>
+                {todayInspectionResolved} 条 ✓
+              </Text>
+            </View>
           </View>
           <View className={styles.diffNote}>💡 所有字段均已自动校验，数值关联一致，可直接核数</View>
         </View>
@@ -232,6 +260,10 @@ const DailyExportPage: React.FC = () => {
                     <View className={styles.historyStat}>
                       <strong>{formatNumber(rec.traffic)}</strong>
                       客流
+                    </View>
+                    <View className={styles.historyStat}>
+                      <strong>{rec.inspectionNew ?? 0}</strong>
+                      巡店新增
                     </View>
                   </View>
                   <View className={styles.historyActions}>

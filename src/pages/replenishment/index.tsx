@@ -1,52 +1,106 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, Button, Input } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
-import { replenishmentItems as initialItems } from '@/data/inventory';
 import { formatCurrency } from '@/utils/format';
-import { ReplenishmentItem } from '@/types';
+import { useRetailStore } from '@/store';
 
 const ReplenishmentPage: React.FC = () => {
-  const [items, setItems] = useState<ReplenishmentItem[]>(initialItems);
+  const replenishmentItems = useRetailStore((s) => s.replenishmentItems);
+  const toggleReplenishmentSelect = useRetailStore((s) => s.toggleReplenishmentSelect);
+  const toggleAllReplenishment = useRetailStore((s) => s.toggleAllReplenishment);
+  const changeReplenishmentQty = useRetailStore((s) => s.changeReplenishmentQty);
+  const inspectionIssues = useRetailStore((s) => s.inspectionIssues);
+
   const [searchText, setSearchText] = useState('');
-  const [qtyMap, setQtyMap] = useState<Record<string, number>>(() => {
+  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
+
+  useDidShow(() => {
     const map: Record<string, number> = {};
-    initialItems.forEach((i) => (map[i.id] = i.suggestedQty));
-    return map;
+    replenishmentItems.forEach((i) => (map[i.id] = i.suggestedQty));
+    setQtyMap(map);
   });
 
-  const allSelected = items.length > 0 && items.every((i) => i.selected);
+  const allSelected =
+    replenishmentItems.length > 0 && replenishmentItems.every((i) => i.selected);
 
   const filteredItems = useMemo(
     () =>
-      items.filter(
+      replenishmentItems.filter(
         (i) =>
           searchText === '' ||
           i.name.includes(searchText) ||
           i.category.includes(searchText) ||
           i.supplier.includes(searchText)
       ),
-    [items, searchText]
+    [replenishmentItems, searchText]
   );
 
-  const selectedItems = items.filter((i) => i.selected);
-  const totalQty = selectedItems.reduce((sum, i) => sum + qtyMap[i.id], 0);
-  const totalAmount = selectedItems.reduce((sum, i) => sum + qtyMap[i.id] * i.unitPrice, 0);
+  const fromInspectionItems = useMemo(
+    () => filteredItems.filter((i) => !!i.sourceIssueId),
+    [filteredItems]
+  );
+
+  const normalItems = useMemo(
+    () => filteredItems.filter((i) => !i.sourceIssueId),
+    [filteredItems]
+  );
+
+  const selectedItems = replenishmentItems.filter((i) => i.selected);
+  const totalQty = selectedItems.reduce(
+    (sum, i) => sum + (qtyMap[i.id] !== undefined ? qtyMap[i.id] : i.suggestedQty),
+    0
+  );
+  const totalAmount = selectedItems.reduce(
+    (sum, i) => sum + (qtyMap[i.id] !== undefined ? qtyMap[i.id] : i.suggestedQty) * i.unitPrice,
+    0
+  );
 
   const toggleSelect = (id: string) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, selected: !i.selected } : i)));
+    toggleReplenishmentSelect(id);
   };
 
   const toggleSelectAll = () => {
-    setItems((prev) => prev.map((i) => ({ ...i, selected: !allSelected })));
+    toggleAllReplenishment(!allSelected);
   };
 
   const changeQty = (id: string, delta: number) => {
-    setQtyMap((prev) => {
-      const newVal = Math.max(0, (prev[id] || 0) + delta);
-      return { ...prev, [id]: newVal };
-    });
+    const current = qtyMap[id] ?? 0;
+    const newVal = Math.max(0, current + delta);
+    setQtyMap((prev) => ({ ...prev, [id]: newVal }));
+    changeReplenishmentQty(id, newVal);
+  };
+
+  const handleViewIssue = (issueId?: string) => {
+    if (!issueId) return;
+    Taro.navigateTo({ url: `/pages/inspection-detail/index?id=${issueId}` });
+  };
+
+  const getIssueStatusText = (status?: string) => {
+    switch (status) {
+      case 'pending':
+        return '待处理';
+      case 'processing':
+        return '处理中';
+      case 'resolved':
+        return '已解决';
+      default:
+        return '未知';
+    }
+  };
+
+  const getIssueStatusClass = (status?: string) => {
+    switch (status) {
+      case 'pending':
+        return styles.sourceIssuePending;
+      case 'processing':
+        return styles.sourceIssueProcessing;
+      case 'resolved':
+        return styles.sourceIssueResolved;
+      default:
+        return '';
+    }
   };
 
   const handleSubmit = () => {
@@ -80,13 +134,13 @@ const ReplenishmentPage: React.FC = () => {
         <View className={styles.summaryItem}>
           <Text className={styles.summaryLabel}>缺货商品</Text>
           <Text className={styles.summaryValue} style={{ color: '#ff7d00' }}>
-            {items.filter((i) => i.currentStock < 30).length}
+            {replenishmentItems.filter((i) => i.currentStock < 30).length}
           </Text>
         </View>
         <View className={styles.summaryItem}>
-          <Text className={styles.summaryLabel}>建议补货</Text>
-          <Text className={styles.summaryValue} style={{ color: '#165dff' }}>
-            {items.length}
+          <Text className={styles.summaryLabel}>巡店上报</Text>
+          <Text className={styles.summaryValue} style={{ color: '#f53f3f' }}>
+            {fromInspectionItems.length}
           </Text>
         </View>
         <View className={styles.summaryItem}>
@@ -116,55 +170,159 @@ const ReplenishmentPage: React.FC = () => {
       </View>
 
       <View className={styles.list}>
-        {filteredItems.map((item) => (
-          <View key={item.id} className={styles.listItem}>
-            <View className={styles.itemTop}>
-              <View
-                className={classnames(styles.checkbox, item.selected && styles.checked)}
-                onClick={() => toggleSelect(item.id)}
-              >
-                {item.selected && '✓'}
-              </View>
-              <View className={styles.itemInfo}>
-                <Text className={styles.itemName}>{item.name}</Text>
-                <Text className={styles.itemCat}>{item.category}</Text>
-                <View className={styles.stockRow}>
-                  <Text>
-                    当前库存：
-                    <Text
-                      className={
-                        item.currentStock <= 30 ? styles.stockLow : styles.stockValue
-                      }
-                    >
-                      {item.currentStock}
+        {fromInspectionItems.length > 0 && (
+          <View style={{ marginBottom: 24 }}>
+            <View className={styles.groupHeader}>
+              <Text className={styles.groupTitle}>
+                🔍 来自巡店上报
+                <Text
+                  style={{
+                    fontSize: 20,
+                    color: '#f53f3f',
+                    marginLeft: 8,
+                    fontWeight: 400,
+                    background: 'rgba(245, 63, 63, 0.1)',
+                    padding: '2rpx 12rpx',
+                    borderRadius: 20
+                  }}
+                >
+                  {fromInspectionItems.length}项
+                </Text>
+              </Text>
+            </View>
+            {fromInspectionItems.map((item) => (
+              <View key={item.id} className={classnames(styles.listItem, styles.itemFromInspection)}>
+                <View className={styles.itemTop}>
+                  <View
+                    className={classnames(styles.checkbox, item.selected && styles.checked)}
+                    onClick={() => toggleSelect(item.id)}
+                  >
+                    {item.selected && '✓'}
+                  </View>
+                  <View className={styles.itemInfo}>
+                    <Text className={styles.itemName}>{item.name}</Text>
+                    <Text className={styles.itemCat}>{item.category}</Text>
+                    <View className={styles.stockRow}>
+                      <Text>
+                        当前库存：
+                        <Text
+                          className={
+                            item.currentStock <= 30 ? styles.stockLow : styles.stockValue
+                          }
+                        >
+                          {item.currentStock}
+                        </Text>
+                      </Text>
+                      <Text>
+                        供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
+                      </Text>
+                    </View>
+                    {item.sourceIssueTitle && (
+                      <View
+                        className={styles.sourceIssueRow}
+                        onClick={() => handleViewIssue(item.sourceIssueId)}
+                      >
+                        <Text className={classnames(styles.sourceIssueTag, getIssueStatusClass(item.sourceIssueStatus))}>
+                          {getIssueStatusText(item.sourceIssueStatus)}
+                        </Text>
+                        <Text className={styles.sourceIssueText}>
+                          来源：{item.sourceIssueTitle} ›
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <View className={styles.itemBottom}>
+                  <View className={styles.qtyControl}>
+                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
+                      -
+                    </Button>
+                    <Text className={styles.qtyNum}>{qtyMap[item.id] ?? item.suggestedQty}</Text>
+                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
+                      +
+                    </Button>
+                    <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
+                  </View>
+                  <View className={styles.priceInfo}>
+                    <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
+                    <Text className={styles.subTotal}>
+                      {formatCurrency((qtyMap[item.id] ?? item.suggestedQty) * item.unitPrice)}
                     </Text>
-                  </Text>
-                  <Text>
-                    供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
-                  </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-            <View className={styles.itemBottom}>
-              <View className={styles.qtyControl}>
-                <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
-                  -
-                </Button>
-                <Text className={styles.qtyNum}>{qtyMap[item.id] || 0}</Text>
-                <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
-                  +
-                </Button>
-                <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
-              </View>
-              <View className={styles.priceInfo}>
-                <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
-                <Text className={styles.subTotal}>
-                  {formatCurrency(qtyMap[item.id] * item.unitPrice)}
-                </Text>
-              </View>
-            </View>
+            ))}
           </View>
-        ))}
+        )}
+
+        {normalItems.length > 0 && (
+          <View>
+            <View className={styles.groupHeader}>
+              <Text className={styles.groupTitle}>
+                📦 常规补货
+                <Text
+                  style={{
+                    fontSize: 20,
+                    color: '#86909c',
+                    marginLeft: 8,
+                    fontWeight: 400
+                  }}
+                >
+                  {normalItems.length}项
+                </Text>
+              </Text>
+            </View>
+            {normalItems.map((item) => (
+              <View key={item.id} className={styles.listItem}>
+                <View className={styles.itemTop}>
+                  <View
+                    className={classnames(styles.checkbox, item.selected && styles.checked)}
+                    onClick={() => toggleSelect(item.id)}
+                  >
+                    {item.selected && '✓'}
+                  </View>
+                  <View className={styles.itemInfo}>
+                    <Text className={styles.itemName}>{item.name}</Text>
+                    <Text className={styles.itemCat}>{item.category}</Text>
+                    <View className={styles.stockRow}>
+                      <Text>
+                        当前库存：
+                        <Text
+                          className={
+                            item.currentStock <= 30 ? styles.stockLow : styles.stockValue
+                          }
+                        >
+                          {item.currentStock}
+                        </Text>
+                      </Text>
+                      <Text>
+                        供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View className={styles.itemBottom}>
+                  <View className={styles.qtyControl}>
+                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
+                      -
+                    </Button>
+                    <Text className={styles.qtyNum}>{qtyMap[item.id] ?? item.suggestedQty}</Text>
+                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
+                      +
+                    </Button>
+                    <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
+                  </View>
+                  <View className={styles.priceInfo}>
+                    <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
+                    <Text className={styles.subTotal}>
+                      {formatCurrency((qtyMap[item.id] ?? item.suggestedQty) * item.unitPrice)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={{ height: 160 }} />

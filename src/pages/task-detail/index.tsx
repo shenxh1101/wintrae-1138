@@ -28,13 +28,22 @@ const TaskDetailPage: React.FC = () => {
         return styles.typeClean;
       case 'display':
         return styles.typeDisplay;
+      case 'replenish':
+        return styles.typeReplenish;
       default:
         return styles.typeGuide;
     }
   };
-  const getTypeIcon = (t: string) => (t === 'guide' ? '👋' : t === 'clean' ? '🧹' : '🛍️');
+  const getTypeIcon = (t: string) =>
+    t === 'guide' ? '👋' : t === 'clean' ? '🧹' : t === 'display' ? '🛍️' : '📦';
   const getTypeName = (t: string) =>
-    t === 'guide' ? '导购任务' : t === 'clean' ? '清洁任务' : '陈列任务';
+    t === 'guide' ? '导购任务' : t === 'clean' ? '清洁任务' : t === 'display' ? '陈列任务' : '补货任务';
+
+  const sourceMap: Record<string, string> = {
+    manual: '手动分配',
+    handover: '交接班',
+    inspection: '巡店上报'
+  };
 
   const getStatusClass = (s: string) =>
     s === 'pending'
@@ -257,6 +266,37 @@ const TaskDetailPage: React.FC = () => {
         <Text className={styles.sectionTitle}>📝 任务描述</Text>
         <Text className={styles.descText}>{task.description}</Text>
       </View>
+
+      {(task.source || task.linkedIssueId) && (
+        <View className={styles.infoSection}>
+          <Text className={styles.sectionTitle}>🔗 关联信息</Text>
+          {task.source && (
+            <View className={styles.linkItem}>
+              <Text className={styles.linkLabel}>任务来源</Text>
+              <Text className={styles.linkValue}>
+                {task.source === 'handover' ? '🔄 ' : task.source === 'inspection' ? '🔍 ' : '✏️ '}
+                {sourceMap[task.source]}
+              </Text>
+            </View>
+          )}
+          {task.linkedIssueId && (
+            <View
+              className={styles.linkItem}
+              style={{ cursor: 'pointer' }}
+              onClick={() =>
+                Taro.navigateTo({ url: `/pages/inspection-detail/index?id=${task.linkedIssueId}` })
+              }
+            >
+              <Text className={styles.linkLabel}>关联巡店问题</Text>
+              <View style={{ flex: 1, textAlign: 'right' }}>
+                <Text style={{ fontSize: 24, color: '#165dff' }}>
+                  {task.linkedIssueTitle || '查看问题详情'} ›
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
 
       <View className={styles.infoSection}>
         <Text className={styles.sectionTitle}>⏱️ 任务进度</Text>

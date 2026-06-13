@@ -40,6 +40,11 @@
   color: #722ed1;
 }
 
+.typeReplenish {
+  background: rgba(245, 63, 63, 0.1);
+  color: $color-error;
+}
+
 .taskTitle {
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
@@ -305,4 +310,29 @@
 .btnDanger {
   background: linear-gradient(135deg, #ff7d7d, $color-error);
   color: $color-text-white;
+}
+
+.linkItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.linkLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  width: 160rpx;
+  flex-shrink: 0;
+}
+
+.linkValue {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
 }

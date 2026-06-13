@@ -346,3 +346,17 @@
   color: $color-success;
   font-weight: $font-weight-medium;
 }
+
+.tipRow {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: $color-bg-page;
+  border-radius: $radius-xs;
+  text-align: center;
+}
+
+.tableRow {
+  &:active {
+    background: $color-bg-page;
+  }
+}

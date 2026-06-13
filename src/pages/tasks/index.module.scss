@@ -317,3 +317,44 @@
   border-top: 1rpx solid $color-divider;
   @include text-ellipsis-multi(2);
 }
+
+.taskReplenish {
+  border-left: 6rpx solid $color-error;
+  background: linear-gradient(90deg, rgba(245, 63, 63, 0.04), transparent 30%);
+}
+
+.sourceTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}
+
+.sourceTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-sm;
+  font-size: 20rpx;
+  font-weight: $font-weight-medium;
+  line-height: 1.5;
+}
+
+.sourceInspection {
+  background: rgba(22, 93, 255, 0.08);
+  color: $color-primary;
+}
+
+.sourceHandover {
+  background: rgba(19, 194, 194, 0.08);
+  color: $color-warning;
+}
+
+.sourceIssue {
+  background: rgba(245, 63, 63, 0.08);
+  color: $color-error;
+  text-decoration: none;
+}

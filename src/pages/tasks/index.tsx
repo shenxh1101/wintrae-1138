@@ -9,7 +9,17 @@ import { employees } from '@/data/tasks';
 import { Task } from '@/types';
 
 type TabType = 'all' | 'pending' | 'doing' | 'completed';
-const typeMap: Record<string, string> = { guide: '🧑‍💼', clean: '🧹', display: '🖼️' };
+const typeMap: Record<string, { icon: string; label: string }> = {
+  guide: { icon: '🧑‍💼', label: '导购' },
+  clean: { icon: '🧹', label: '清洁' },
+  display: { icon: '🖼️', label: '陈列' },
+  replenish: { icon: '📦', label: '补货' }
+};
+const sourceMap: Record<string, string> = {
+  manual: '手动分配',
+  handover: '交接班',
+  inspection: '巡店上报'
+};
 
 const TasksPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
@@ -34,6 +44,16 @@ const TasksPage: React.FC = () => {
   const filteredTasks = useMemo(
     () => (activeTab === 'all' ? tasks : tasks.filter((t) => t.status === activeTab)),
     [tasks, activeTab]
+  );
+
+  const replenishTasks = useMemo(
+    () => filteredTasks.filter((t) => t.type === 'replenish'),
+    [filteredTasks]
+  );
+
+  const normalTasks = useMemo(
+    () => filteredTasks.filter((t) => t.type !== 'replenish'),
+    [filteredTasks]
   );
 
   const handleAssign = () => {
@@ -192,44 +212,141 @@ const TasksPage: React.FC = () => {
       </View>
 
       <View className={styles.taskSection}>
-        <View className={styles.sectionHeader}>
-          <Text className={styles.sectionTitle}>📋 任务列表</Text>
-          <Button className={styles.addBtn} onClick={handleAssign}>
-            + 新建
-          </Button>
-        </View>
-        {filteredTasks.length > 0 ? (
-          filteredTasks.map((task) => (
-            <View
-              key={task.id}
-              className={styles.taskCard}
-              onClick={() =>
-                Taro.navigateTo({ url: `/pages/task-detail/index?id=${task.id}` })
-              }
-            >
-              <View className={styles.taskHeader}>
-                <Text className={styles.taskTitle}>
-                  {typeMap[task.type]} {task.title}
+        {replenishTasks.length > 0 && (
+          <View style={{ marginBottom: 24 }}>
+            <View className={styles.sectionHeader}>
+              <Text className={styles.sectionTitle}>
+                📦 缺货补货任务
+                <Text
+                  style={{
+                    fontSize: 20,
+                    color: '#f53f3f',
+                    fontWeight: 400,
+                    marginLeft: 8,
+                    background: 'rgba(245, 63, 63, 0.1)',
+                    padding: '2rpx 12rpx',
+                    borderRadius: 20
+                  }}
+                >
+                  {replenishTasks.length}项
                 </Text>
-                <Text className={classnames(styles.taskStatus, getStatusClass(task.status))}>
-                  {getStatusText(task.status)}
-                </Text>
-              </View>
-              <View className={styles.taskMeta}>
-                <View className={styles.metaItem}>👤 {task.assignee}</View>
-                <View className={styles.metaItem}>⏰ {task.deadline}</View>
-                <View className={classnames(styles.metaItem, getPriorityClass(task.priority))}>
-                  ⚡ {getPriorityText(task.priority)}
-                </View>
-              </View>
-              <Text className={styles.taskDesc} numberOfLines={2}>
-                {task.description}
               </Text>
             </View>
-          ))
-        ) : (
-          <EmptyState icon="✅" text="当前分类暂无任务" />
+            {replenishTasks.map((task) => (
+              <View
+                key={task.id}
+                className={classnames(styles.taskCard, styles.taskReplenish)}
+                onClick={() =>
+                  Taro.navigateTo({ url: `/pages/task-detail/index?id=${task.id}` })
+                }
+              >
+                <View className={styles.taskHeader}>
+                  <Text className={styles.taskTitle}>
+                    {typeMap[task.type].icon} {task.title}
+                  </Text>
+                  <Text className={classnames(styles.taskStatus, getStatusClass(task.status))}>
+                    {getStatusText(task.status)}
+                  </Text>
+                </View>
+                <View className={styles.taskMeta}>
+                  <View className={styles.metaItem}>👤 {task.assignee}</View>
+                  <View className={styles.metaItem}>⏰ {task.deadline}</View>
+                  <View className={classnames(styles.metaItem, getPriorityClass(task.priority))}>
+                    ⚡ {getPriorityText(task.priority)}
+                  </View>
+                </View>
+                <View className={styles.sourceTagRow}>
+                  <Text className={classnames(styles.sourceTag, styles.sourceInspection)}>
+                    � 来源：{sourceMap[task.source || 'manual']}
+                  </Text>
+                  {task.linkedIssueTitle && (
+                    <Text
+                      className={classnames(styles.sourceTag, styles.sourceIssue)}
+                      onClick={(e) => {
+                        e.stopPropagation?.();
+                        if (task.linkedIssueId) {
+                          Taro.navigateTo({
+                            url: `/pages/inspection-detail/index?id=${task.linkedIssueId}`
+                          });
+                        }
+                      }}
+                    >
+                      关联问题：{task.linkedIssueTitle} ›
+                    </Text>
+                  )}
+                </View>
+                <Text className={styles.taskDesc} numberOfLines={2}>
+                  {task.description}
+                </Text>
+              </View>
+            ))}
+          </View>
         )}
+
+        <View>
+          <View className={styles.sectionHeader}>
+            <Text className={styles.sectionTitle}>
+              �📋 常规任务
+              <Text
+                style={{
+                  fontSize: 20,
+                  color: '#86909c',
+                  fontWeight: 400,
+                  marginLeft: 8
+                }}
+              >
+                {normalTasks.length}项
+              </Text>
+            </Text>
+            <Button className={styles.addBtn} onClick={handleAssign}>
+              + 新建
+            </Button>
+          </View>
+          {normalTasks.length > 0 ? (
+            normalTasks.map((task) => (
+              <View
+                key={task.id}
+                className={styles.taskCard}
+                onClick={() =>
+                  Taro.navigateTo({ url: `/pages/task-detail/index?id=${task.id}` })
+                }
+              >
+                <View className={styles.taskHeader}>
+                  <Text className={styles.taskTitle}>
+                    {typeMap[task.type].icon} {task.title}
+                  </Text>
+                  <Text className={classnames(styles.taskStatus, getStatusClass(task.status))}>
+                    {getStatusText(task.status)}
+                  </Text>
+                </View>
+                <View className={styles.taskMeta}>
+                  <View className={styles.metaItem}>👤 {task.assignee}</View>
+                  <View className={styles.metaItem}>⏰ {task.deadline}</View>
+                  <View className={classnames(styles.metaItem, getPriorityClass(task.priority))}>
+                    ⚡ {getPriorityText(task.priority)}
+                  </View>
+                </View>
+                {task.source && task.source !== 'manual' && (
+                  <View className={styles.sourceTagRow}>
+                    <Text
+                      className={classnames(
+                        styles.sourceTag,
+                        task.source === 'handover' ? styles.sourceHandover : styles.sourceInspection
+                      )}
+                    >
+                      {task.source === 'handover' ? '🔄' : '🔍'} 来源：{sourceMap[task.source]}
+                    </Text>
+                  </View>
+                )}
+                <Text className={styles.taskDesc} numberOfLines={2}>
+                  {task.description}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <EmptyState icon="✅" text="当前分类暂无常规任务" />
+          )}
+        </View>
       </View>
     </View>
   );

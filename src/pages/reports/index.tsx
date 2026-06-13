@@ -37,12 +37,22 @@ const ReportsPage: React.FC = () => {
     Taro.navigateTo({ url: '/pages/daily-export/index' });
   };
 
-  const handleDailySummary = () => {
-    console.log('[Reports] 查看今日日报');
-    const today = dailyReports[0];
+  const handleDailySummary = (date?: string) => {
+    const report = date ? dailyReports.find((d) => d.date === date) : dailyReports[0];
+    if (!report) return;
+    const profitRate = report.sales > 0 ? (report.profit / report.sales) * 100 : 0;
+    const avgOrder = report.orders > 0 ? report.sales / report.orders : 0;
     Taro.showModal({
-      title: '今日日结摘要',
-      content: `日期：${today.date}\n销售额：${formatCurrency(today.sales)}\n订单数：${today.orders}单\n毛利额：${formatCurrency(today.profit)}\n客流数：${today.traffic}人\n新会员：${today.newMembers}人\n客单价：${formatCurrency(today.sales / today.orders)}`,
+      title: `${report.date} 日结摘要`,
+      content:
+        `📊 经营数据\n` +
+        `销售额：${formatCurrency(report.sales)}\n` +
+        `订单数：${report.orders} 单\n` +
+        `毛利额：${formatCurrency(report.profit)}\n` +
+        `毛利率：${profitRate.toFixed(1)}%\n` +
+        `客流数：${formatNumber(report.traffic)} 人\n` +
+        `客单价：${formatCurrency(avgOrder)}\n` +
+        `新会员：${report.newMembers} 人`,
       showCancel: false,
       confirmText: '好的'
     });
@@ -240,27 +250,41 @@ const ReportsPage: React.FC = () => {
         <View className={styles.card}>
           <View className={styles.cardHeader}>
             <Text className={styles.cardTitle}>📅 日结明细</Text>
-            <Text style={{ fontSize: 24, color: '#86909c' }}>近7天</Text>
+            <Text style={{ fontSize: 24, color: '#86909c' }}>近7天 · 与导出中心同口径</Text>
           </View>
           <View className={styles.dailyTable}>
             <View className={styles.tableHeader}>
               <Text className={styles.tableCell}>日期</Text>
               <Text className={styles.tableCell}>销售额</Text>
-              <Text className={styles.tableCell}>订单</Text>
-              <Text className={styles.tableCell}>毛利</Text>
+              <Text className={styles.tableCell}>毛利额</Text>
+              <Text className={styles.tableCell}>毛利率</Text>
               <Text className={styles.tableCell}>客流</Text>
+              <Text className={styles.tableCell}>订单</Text>
             </View>
-            {dailyReports.map((d, idx) => (
-              <View key={idx} className={styles.tableRow}>
-                <Text className={styles.rowCell}>{d.date.slice(5)}</Text>
-                <Text className={styles.rowCell}>{formatCurrency(d.sales)}</Text>
-                <Text className={styles.rowCell}>{d.orders}</Text>
-                <Text className={classnames(styles.rowCell, styles.profitRate)}>
-                  {((d.profit / d.sales) * 100).toFixed(1)}%
-                </Text>
-                <Text className={styles.rowCell}>{d.traffic}</Text>
-              </View>
-            ))}
+            {dailyReports.map((d, idx) => {
+              const profitRate = d.sales > 0 ? (d.profit / d.sales) * 100 : 0;
+              return (
+                <View
+                  key={idx}
+                  className={styles.tableRow}
+                  onClick={() => handleDailySummary(d.date)}
+                >
+                  <Text className={styles.rowCell}>{d.date.slice(5)}</Text>
+                  <Text className={styles.rowCell}>{formatCurrency(d.sales)}</Text>
+                  <Text className={styles.rowCell}>{formatCurrency(d.profit)}</Text>
+                  <Text className={classnames(styles.rowCell, styles.profitRate)}>
+                    {profitRate.toFixed(1)}%
+                  </Text>
+                  <Text className={styles.rowCell}>{formatNumber(d.traffic)}</Text>
+                  <Text className={styles.rowCell}>{d.orders}</Text>
+                </View>
+              );
+            })}
+          </View>
+          <View className={styles.tipRow}>
+            <Text style={{ fontSize: 22, color: '#86909c' }}>
+              💡 所有字段与日结导出中心保持一致，点击行可查看详细摘要
+            </Text>
           </View>
         </View>
       )}

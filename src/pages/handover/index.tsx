@@ -105,7 +105,8 @@ const HandoverPage: React.FC = () => {
                 assignee: emp.name,
                 deadline: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
                 priority: 'high',
-                description: `【交接班】${remarks}\n交班人：${handedBy}`
+                description: `【交接班】${remarks}\n交班人：${handedBy}`,
+                source: 'handover'
               });
               Taro.showToast({ title: '已生成任务', icon: 'success' });
             }
@@ -131,7 +132,8 @@ const HandoverPage: React.FC = () => {
               assignee: emp.name,
               deadline: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
               priority: 'medium',
-              description: `交接班物品确认：${item}\n交班人：${handedBy}`
+              description: `交接班物品确认：${item}\n交班人：${handedBy}`,
+              source: 'handover'
             });
           }, idx * 200);
         });

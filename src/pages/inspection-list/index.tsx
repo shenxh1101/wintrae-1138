@@ -144,8 +144,8 @@ const InspectionListPage: React.FC = () => {
 
               return (
                 <View key={issue.id} className={classnames(styles.issueCard, cardClass)}>
-                  <View className={styles.issueHeader}>
-                    <Text className={styles.issueTitle} onClick={() => handleViewDetail(issue)}>
+                  <View className={styles.issueHeader} onClick={() => Taro.navigateTo({ url: `/pages/inspection-detail/index?id=${issue.id}` })}>
+                    <Text className={styles.issueTitle}>
                       {typeMeta.icon} {issue.title}
                     </Text>
                     <Text className={classnames(styles.statusTag, statusMeta.class)}>{statusMeta.label}</Text>

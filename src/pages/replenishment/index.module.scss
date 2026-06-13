@@ -258,3 +258,63 @@
     opacity: 0.9;
   }
 }
+
+.groupHeader {
+  margin-bottom: $spacing-sm;
+}
+
+.groupTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.itemFromInspection {
+  border-left: 6rpx solid $color-error;
+  background: linear-gradient(90deg, rgba(245, 63, 63, 0.04), transparent 30%);
+}
+
+.sourceIssueRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+  padding-top: $spacing-xs;
+  border-top: 1rpx dashed rgba(245, 63, 63, 0.2);
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+
+.sourceIssueTag {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-sm;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
+.sourceIssuePending {
+  background: rgba(255, 125, 0, 0.1);
+  color: $color-warning;
+}
+
+.sourceIssueProcessing {
+  background: rgba(22, 93, 255, 0.1);
+  color: $color-primary;
+}
+
+.sourceIssueResolved {
+  background: rgba(0, 180, 42, 0.1);
+  color: $color-success;
+}
+
+.sourceIssueText {
+  font-size: 22rpx;
+  color: $color-text-secondary;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
