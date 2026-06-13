@@ -96,7 +96,7 @@ export interface InspectionIssue {
   resolvedNote?: string;
 }
 
-export type ReplenishmentOrderStatus = 'pending' | 'ordered' | 'completed';
+export type ReplenishmentOrderStatus = 'pending' | 'ordered' | 'received' | 'completed' | 'cancelled';
 
 export interface ReplenishmentItem {
   id: string;
@@ -113,6 +113,9 @@ export interface ReplenishmentItem {
   orderStatus?: ReplenishmentOrderStatus;
   orderNo?: string;
   orderTime?: string;
+  receivedTime?: string;
+  completedTime?: string;
+  cancelledTime?: string;
 }
 
 export interface Promotion {

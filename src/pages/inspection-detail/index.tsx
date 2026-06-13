@@ -118,6 +118,7 @@ const InspectionDetailPage: React.FC = () => {
   };
 
   const handleViewReplenishment = () => {
+    useRetailStore.getState().setFocusIssueId(issue.id);
     Taro.switchTab({ url: '/pages/replenishment/index' });
   };
 

@@ -318,3 +318,57 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.focusHeader {
+  background: rgba(22, 93, 255, 0.06);
+  border-left: 6rpx solid $color-primary;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-sm;
+}
+
+.statusActions {
+  display: flex;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}
+
+.statusActionBtn {
+  @include button-reset;
+  flex: 1;
+  height: 56rpx;
+  border-radius: $radius-sm;
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+}
+
+.statusActionPrimary {
+  background: rgba(22, 93, 255, 0.1);
+  color: $color-primary;
+  border: 1rpx solid rgba(22, 93, 255, 0.3);
+
+  &:active {
+    background: rgba(22, 93, 255, 0.15);
+  }
+}
+
+.statusActionSuccess {
+  background: rgba(0, 180, 42, 0.1);
+  color: $color-success;
+  border: 1rpx solid rgba(0, 180, 42, 0.3);
+
+  &:active {
+    background: rgba(0, 180, 42, 0.15);
+  }
+}
+
+.statusActionSecondary {
+  background: $color-bg-page;
+  color: $color-text-secondary;
+  border: 1rpx solid $color-divider;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}

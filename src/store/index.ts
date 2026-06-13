@@ -109,7 +109,9 @@ interface RetailState {
   inspectionIssues: InspectionIssue[];
   dailyExports: DailyExportRecord[];
   replenishmentItems: ReplenishmentItem[];
+  focusIssueId: string | null;
 
+  setFocusIssueId: (id: string | null) => void;
   getPromotionById: (id: string) => Promotion | undefined;
   updatePromotion: (id: string, patch: Partial<Promotion>) => void;
 
@@ -134,6 +136,10 @@ interface RetailState {
   toggleAllReplenishment: (selected: boolean) => void;
   changeReplenishmentQty: (id: string, qty: number) => void;
   submitReplenishmentOrder: (ids: string[]) => string;
+  markReplenishmentReceived: (id: string) => void;
+  markReplenishmentCompleted: (id: string) => void;
+  markReplenishmentCancelled: (id: string, reason?: string) => void;
+  getReplenishmentByIssueId: (issueId: string) => ReplenishmentItem[];
   syncIssueStatus: (issueId: string) => void;
 
   hydrateFromStorage: () => void;
@@ -148,12 +154,15 @@ const buildInitialState = () => {
     handoverRecords: stored?.handoverRecords || [...initialHandover],
     inspectionIssues: stored?.inspectionIssues || [...initialInspectionIssues],
     dailyExports: stored?.dailyExports || [...initialDailyExports],
-    replenishmentItems: stored?.replenishmentItems || [...initialReplenishment]
+    replenishmentItems: stored?.replenishmentItems || [...initialReplenishment],
+    focusIssueId: null
   };
 };
 
 export const useRetailStore = create<RetailState>((set, get) => ({
   ...buildInitialState(),
+
+  setFocusIssueId: (id) => set({ focusIssueId: id }),
 
   getPromotionById: (id) => get().promotions.find((p) => p.id === id),
 
@@ -353,6 +362,43 @@ export const useRetailStore = create<RetailState>((set, get) => ({
       )
     }));
     get().persistToStorage();
+  },
+
+  markReplenishmentReceived: (id) => {
+    set((state) => ({
+      replenishmentItems: state.replenishmentItems.map((i) =>
+        i.id === id
+          ? { ...i, orderStatus: 'received' as const, receivedTime: nowStr() }
+          : i
+      )
+    }));
+    get().persistToStorage();
+  },
+
+  markReplenishmentCompleted: (id) => {
+    set((state) => ({
+      replenishmentItems: state.replenishmentItems.map((i) =>
+        i.id === id
+          ? { ...i, orderStatus: 'completed' as const, completedTime: nowStr() }
+          : i
+      )
+    }));
+    get().persistToStorage();
+  },
+
+  markReplenishmentCancelled: (id) => {
+    set((state) => ({
+      replenishmentItems: state.replenishmentItems.map((i) =>
+        i.id === id
+          ? { ...i, orderStatus: 'cancelled' as const, cancelledTime: nowStr() }
+          : i
+      )
+    }));
+    get().persistToStorage();
+  },
+
+  getReplenishmentByIssueId: (issueId) => {
+    return get().replenishmentItems.filter((r) => r.sourceIssueId === issueId);
   },
 
   hydrateFromStorage: () => {

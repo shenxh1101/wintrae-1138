@@ -163,6 +163,117 @@
   box-shadow: 0 0 0 2rpx rgba(22, 93, 255, 0.15);
 }
 
+.summaryCard {
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  border: 1rpx solid $color-divider;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.summaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.summaryCardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.summaryStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xs;
+}
+
+.summaryStat {
+  text-align: center;
+  padding: $spacing-sm 0;
+}
+
+.summaryStatValue {
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.summaryStatLabel {
+  font-size: 20rpx;
+  color: $color-text-secondary;
+}
+
+.summaryDetail {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx dashed $color-divider;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.detailTitle {
+  font-size: 26rpx;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.detailSub {
+  font-size: 20rpx;
+  color: $color-text-secondary;
+}
+
+.detailBadge {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
+}
+
+.badgeSuccess {
+  background: rgba(0, 180, 42, 0.1);
+  color: $color-success;
+}
+
+.badgePrimary {
+  background: rgba(22, 93, 255, 0.1);
+  color: $color-primary;
+}
+
+.badgeWarning {
+  background: rgba(255, 125, 0, 0.1);
+  color: $color-warning;
+}
+
+.badgeInfo {
+  background: rgba(15, 198, 194, 0.1);
+  color: #0fc6c2;
+}
+
 .historyHeader {
   display: flex;
   justify-content: space-between;

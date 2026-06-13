@@ -16,9 +16,14 @@ const todayStr = () => {
 };
 
 const DailyExportPage: React.FC = () => {
-  const { dailyExports, addDailyExport, tasks, inspectionIssues } = useRetailStore();
+  const { dailyExports, addDailyExport, tasks, inspectionIssues, replenishmentItems } = useRetailStore();
   const [remarks, setRemarks] = useState('');
   const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    inspection: false,
+    replenishment: false,
+    tasks: false
+  });
 
   const todaySalesData = dailyReports[0];
   const todaySales = todaySalesData.sales;
@@ -83,6 +88,41 @@ const DailyExportPage: React.FC = () => {
     if (diff > 0) return '#00b42a';
     if (diff < 0) return '#f53f3f';
     return '#86909c';
+  };
+
+  const dayInspectionNew = inspectionIssues.filter((i) => i.createdAt.startsWith(selectedDate)).length;
+  const dayInspectionResolved = inspectionIssues.filter(
+    (i) => i.status === 'resolved' && i.resolvedAt?.startsWith(selectedDate)
+  ).length;
+  const dayInspectionPending = inspectionIssues.filter(
+    (i) => i.createdAt.startsWith(selectedDate) && i.status !== 'resolved'
+  ).length;
+
+  const dayReplenishmentOrdered = replenishmentItems.filter(
+    (i) => i.orderTime?.startsWith(selectedDate) && i.orderStatus === 'ordered'
+  ).length;
+  const dayReplenishmentReceived = replenishmentItems.filter(
+    (i) => i.receivedTime?.startsWith(selectedDate)
+  ).length;
+  const dayReplenishmentCompleted = replenishmentItems.filter(
+    (i) => i.completedTime?.startsWith(selectedDate)
+  ).length;
+
+  const dayTasksCreated = tasks.filter((t) => t.createdAt.startsWith(selectedDate)).length;
+  const dayTasksCompleted = tasks.filter(
+    (t) => t.status === 'completed' && t.updatedAt?.startsWith(selectedDate)
+  ).length;
+
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleViewIssueDetail = (issueId: string) => {
+    Taro.navigateTo({ url: `/pages/inspection-detail/index?id=${issueId}` });
+  };
+
+  const handleViewTaskDetail = (taskId: string) => {
+    Taro.navigateTo({ url: `/pages/task-detail/index?id=${taskId}` });
   };
 
   const handleExport = () => {
@@ -299,6 +339,203 @@ const DailyExportPage: React.FC = () => {
             </View>
           </View>
         )}
+
+        <View className={styles.section}>
+          <Text className={styles.sectionTitle}>
+            📋 {selectedDate} 运营复盘
+            <Text style={{ fontSize: 20, color: '#86909c', fontWeight: 400, marginLeft: 8 }}>
+              点击板块展开明细
+            </Text>
+          </Text>
+
+          <View className={styles.summaryCard} onClick={() => toggleSection('inspection')}>
+            <View className={styles.summaryHeader}>
+              <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 32 }}>🔍</Text>
+                <Text className={styles.summaryCardTitle}>巡店问题</Text>
+              </View>
+              <Text style={{ fontSize: 24, color: '#86909c' }}>
+                {expandedSections.inspection ? '收起 ▲' : '展开 ▼'}
+              </Text>
+            </View>
+            <View className={styles.summaryStats}>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#165dff' }}>{dayInspectionNew}</Text>
+                <Text className={styles.summaryStatLabel}>新增</Text>
+              </View>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#00b42a' }}>{dayInspectionResolved}</Text>
+                <Text className={styles.summaryStatLabel}>已解决</Text>
+              </View>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#ff7d00' }}>{dayInspectionPending}</Text>
+                <Text className={styles.summaryStatLabel}>待处理</Text>
+              </View>
+            </View>
+            {expandedSections.inspection && (
+              <View className={styles.summaryDetail}>
+                {inspectionIssues.filter((i) => i.createdAt.startsWith(selectedDate)).length === 0 ? (
+                  <Text style={{ fontSize: 22, color: '#86909c', textAlign: 'center', padding: '20rpx 0' }}>
+                    当日无巡店问题
+                  </Text>
+                ) : (
+                  inspectionIssues
+                    .filter((i) => i.createdAt.startsWith(selectedDate))
+                    .map((issue) => (
+                      <View
+                        key={issue.id}
+                        className={styles.detailItem}
+                        onClick={() => handleViewIssueDetail(issue.id)}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text className={styles.detailTitle}>{issue.title}</Text>
+                          <Text className={styles.detailSub}>
+                            {issue.createdAt} · {issue.location}
+                          </Text>
+                        </View>
+                        <Text
+                          className={classnames(
+                            styles.detailBadge,
+                            issue.status === 'resolved' ? styles.badgeSuccess :
+                            issue.status === 'processing' ? styles.badgePrimary : styles.badgeWarning
+                          )}
+                        >
+                          {issue.status === 'resolved' ? '已解决' : issue.status === 'processing' ? '处理中' : '待处理'}
+                        </Text>
+                        <Text style={{ fontSize: 24, color: '#86909c' }}>›</Text>
+                      </View>
+                    ))
+                )}
+              </View>
+            )}
+          </View>
+
+          <View className={styles.summaryCard} onClick={() => toggleSection('replenishment')}>
+            <View className={styles.summaryHeader}>
+              <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 32 }}>📦</Text>
+                <Text className={styles.summaryCardTitle}>补货处理</Text>
+              </View>
+              <Text style={{ fontSize: 24, color: '#86909c' }}>
+                {expandedSections.replenishment ? '收起 ▲' : '展开 ▼'}
+              </Text>
+            </View>
+            <View className={styles.summaryStats}>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#165dff' }}>{dayReplenishmentOrdered}</Text>
+                <Text className={styles.summaryStatLabel}>已下单</Text>
+              </View>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#0fc6c2' }}>{dayReplenishmentReceived}</Text>
+                <Text className={styles.summaryStatLabel}>已收货</Text>
+              </View>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#00b42a' }}>{dayReplenishmentCompleted}</Text>
+                <Text className={styles.summaryStatLabel}>已完成</Text>
+              </View>
+            </View>
+            {expandedSections.replenishment && (
+              <View className={styles.summaryDetail}>
+                {replenishmentItems.filter((r) =>
+                  r.orderTime?.startsWith(selectedDate) ||
+                  r.receivedTime?.startsWith(selectedDate) ||
+                  r.completedTime?.startsWith(selectedDate)
+                ).length === 0 ? (
+                  <Text style={{ fontSize: 22, color: '#86909c', textAlign: 'center', padding: '20rpx 0' }}>
+                    当日无补货处理记录
+                  </Text>
+                ) : (
+                  replenishmentItems
+                    .filter((r) =>
+                      r.orderTime?.startsWith(selectedDate) ||
+                      r.receivedTime?.startsWith(selectedDate) ||
+                      r.completedTime?.startsWith(selectedDate)
+                    )
+                    .map((item) => (
+                      <View key={item.id} className={styles.detailItem}>
+                        <View style={{ flex: 1 }}>
+                          <Text className={styles.detailTitle}>{item.name}</Text>
+                          <Text className={styles.detailSub}>
+                            {item.supplier} · {item.suggestedQty}件
+                          </Text>
+                        </View>
+                        <Text
+                          className={classnames(
+                            styles.detailBadge,
+                            item.orderStatus === 'completed' ? styles.badgeSuccess :
+                            item.orderStatus === 'received' ? styles.badgeInfo :
+                            item.orderStatus === 'ordered' ? styles.badgePrimary : styles.badgeWarning
+                          )}
+                        >
+                          {item.orderStatus === 'completed' ? '已完成' :
+                           item.orderStatus === 'received' ? '已收货' :
+                           item.orderStatus === 'ordered' ? '已下单' : '待下单'}
+                        </Text>
+                      </View>
+                    ))
+                )}
+              </View>
+            )}
+          </View>
+
+          <View className={styles.summaryCard} onClick={() => toggleSection('tasks')}>
+            <View className={styles.summaryHeader}>
+              <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 32 }}>📋</Text>
+                <Text className={styles.summaryCardTitle}>员工任务</Text>
+              </View>
+              <Text style={{ fontSize: 24, color: '#86909c' }}>
+                {expandedSections.tasks ? '收起 ▲' : '展开 ▼'}
+              </Text>
+            </View>
+            <View className={styles.summaryStats}>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#165dff' }}>{dayTasksCreated}</Text>
+                <Text className={styles.summaryStatLabel}>新创建</Text>
+              </View>
+              <View className={styles.summaryStat}>
+                <Text className={styles.summaryStatValue} style={{ color: '#00b42a' }}>{dayTasksCompleted}</Text>
+                <Text className={styles.summaryStatLabel}>已完成</Text>
+              </View>
+            </View>
+            {expandedSections.tasks && (
+              <View className={styles.summaryDetail}>
+                {tasks.filter((t) => t.createdAt.startsWith(selectedDate)).length === 0 ? (
+                  <Text style={{ fontSize: 22, color: '#86909c', textAlign: 'center', padding: '20rpx 0' }}>
+                    当日无任务记录
+                  </Text>
+                ) : (
+                  tasks
+                    .filter((t) => t.createdAt.startsWith(selectedDate))
+                    .map((task) => (
+                      <View
+                        key={task.id}
+                        className={styles.detailItem}
+                        onClick={() => handleViewTaskDetail(task.id)}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text className={styles.detailTitle}>{task.title}</Text>
+                          <Text className={styles.detailSub}>
+                            {task.assignee} · 截止 {task.deadline}
+                          </Text>
+                        </View>
+                        <Text
+                          className={classnames(
+                            styles.detailBadge,
+                            task.status === 'completed' ? styles.badgeSuccess :
+                            task.status === 'doing' ? styles.badgePrimary : styles.badgeWarning
+                          )}
+                        >
+                          {task.status === 'completed' ? '已完成' : task.status === 'doing' ? '进行中' : '待处理'}
+                        </Text>
+                        <Text style={{ fontSize: 24, color: '#86909c' }}>›</Text>
+                      </View>
+                    ))
+                )}
+              </View>
+            )}
+          </View>
+        </View>
 
         {isToday && (
           <>

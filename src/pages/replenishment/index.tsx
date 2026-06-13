@@ -10,7 +10,9 @@ import { ReplenishmentItem, ReplenishmentOrderStatus } from '@/types';
 const ORDER_STATUS_MAP: Record<ReplenishmentOrderStatus, { label: string; color: string; bg: string }> = {
   pending: { label: '待下单', color: '#ff7d00', bg: 'rgba(255, 125, 0, 0.1)' },
   ordered: { label: '已下单', color: '#165dff', bg: 'rgba(22, 93, 255, 0.1)' },
-  completed: { label: '已完成', color: '#00b42a', bg: 'rgba(0, 180, 42, 0.1)' }
+  received: { label: '已收货', color: '#0fc6c2', bg: 'rgba(15, 198, 194, 0.1)' },
+  completed: { label: '已完成', color: '#00b42a', bg: 'rgba(0, 180, 42, 0.1)' },
+  cancelled: { label: '已取消', color: '#86909c', bg: 'rgba(134, 144, 156, 0.1)' }
 };
 
 const ReplenishmentPage: React.FC = () => {
@@ -19,7 +21,12 @@ const ReplenishmentPage: React.FC = () => {
   const toggleAllReplenishment = useRetailStore((s) => s.toggleAllReplenishment);
   const changeReplenishmentQty = useRetailStore((s) => s.changeReplenishmentQty);
   const submitReplenishmentOrder = useRetailStore((s) => s.submitReplenishmentOrder);
+  const markReplenishmentReceived = useRetailStore((s) => s.markReplenishmentReceived);
+  const markReplenishmentCompleted = useRetailStore((s) => s.markReplenishmentCompleted);
+  const markReplenishmentCancelled = useRetailStore((s) => s.markReplenishmentCancelled);
   const inspectionIssues = useRetailStore((s) => s.inspectionIssues);
+  const focusIssueId = useRetailStore((s) => s.focusIssueId);
+  const setFocusIssueId = useRetailStore((s) => s.setFocusIssueId);
 
   const [searchText, setSearchText] = useState('');
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
@@ -45,9 +52,23 @@ const ReplenishmentPage: React.FC = () => {
     [replenishmentItems, searchText]
   );
 
+  const focusItems = useMemo(
+    () =>
+      focusIssueId
+        ? replenishmentItems.filter((i) => i.sourceIssueId === focusIssueId)
+        : [],
+    [replenishmentItems, focusIssueId]
+  );
+
+  const focusIssueTitle = useMemo(() => {
+    if (!focusIssueId) return '';
+    const issue = inspectionIssues.find((i) => i.id === focusIssueId);
+    return issue?.title || '';
+  }, [focusIssueId, inspectionIssues]);
+
   const fromInspectionItems = useMemo(
-    () => filteredItems.filter((i) => !!i.sourceIssueId),
-    [filteredItems]
+    () => filteredItems.filter((i) => !!i.sourceIssueId && i.sourceIssueId !== focusIssueId),
+    [filteredItems, focusIssueId]
   );
 
   const normalItems = useMemo(
@@ -134,6 +155,69 @@ const ReplenishmentPage: React.FC = () => {
         {meta.label}
       </Text>
     );
+  };
+
+  const handleMarkReceived = (id: string) => {
+    Taro.showModal({
+      title: '确认收货',
+      content: '确认该补货商品已送达门店？',
+      success: (res) => {
+        if (res.confirm) {
+          markReplenishmentReceived(id);
+          Taro.showToast({ title: '已标记收货', icon: 'success' });
+        }
+      }
+    });
+  };
+
+  const handleMarkCompleted = (id: string) => {
+    Taro.showModal({
+      title: '确认完成',
+      content: '确认该补货商品已上架完成？',
+      success: (res) => {
+        if (res.confirm) {
+          markReplenishmentCompleted(id);
+          Taro.showToast({ title: '已标记完成', icon: 'success' });
+        }
+      }
+    });
+  };
+
+  const handleMarkCancelled = (id: string) => {
+    Taro.showModal({
+      title: '取消补货',
+      content: '确认取消该补货项？此操作不可恢复',
+      confirmColor: '#f53f3f',
+      success: (res) => {
+        if (res.confirm) {
+          markReplenishmentCancelled(id);
+          Taro.showToast({ title: '已取消', icon: 'none' });
+        }
+      }
+    });
+  };
+
+  const renderStatusActions = (item: ReplenishmentItem) => {
+    const status = item.orderStatus || 'pending';
+    const actions: { label: string; onClick: () => void; type: 'primary' | 'success' | 'warning' | 'danger' | 'secondary' }[] = [];
+
+    if (status === 'ordered') {
+      actions.push({ label: '确认收货', onClick: () => handleMarkReceived(item.id), type: 'primary' });
+      actions.push({ label: '取消', onClick: () => handleMarkCancelled(item.id), type: 'secondary' });
+    }
+    if (status === 'received') {
+      actions.push({ label: '上架完成', onClick: () => handleMarkCompleted(item.id), type: 'success' });
+      actions.push({ label: '取消', onClick: () => handleMarkCancelled(item.id), type: 'secondary' });
+    }
+    if (status === 'pending') {
+      actions.push({ label: '取消', onClick: () => handleMarkCancelled(item.id), type: 'secondary' });
+    }
+
+    return actions;
+  };
+
+  const handleClearFocus = () => {
+    setFocusIssueId(null);
   };
 
   const handleSubmit = () => {
@@ -236,6 +320,27 @@ const ReplenishmentPage: React.FC = () => {
             </Text>
           </View>
         </View>
+        {renderStatusActions(item).length > 0 && (
+          <View className={styles.statusActions}>
+            {renderStatusActions(item).map((action, idx) => (
+              <Button
+                key={idx}
+                className={classnames(
+                  styles.statusActionBtn,
+                  action.type === 'primary' && styles.statusActionPrimary,
+                  action.type === 'success' && styles.statusActionSuccess,
+                  action.type === 'secondary' && styles.statusActionSecondary
+                )}
+                onClick={(e) => {
+                  e.stopPropagation?.();
+                  action.onClick();
+                }}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -299,6 +404,27 @@ const ReplenishmentPage: React.FC = () => {
             </Text>
           </View>
         </View>
+        {renderStatusActions(item).length > 0 && (
+          <View className={styles.statusActions}>
+            {renderStatusActions(item).map((action, idx) => (
+              <Button
+                key={idx}
+                className={classnames(
+                  styles.statusActionBtn,
+                  action.type === 'primary' && styles.statusActionPrimary,
+                  action.type === 'success' && styles.statusActionSuccess,
+                  action.type === 'secondary' && styles.statusActionSecondary
+                )}
+                onClick={(e) => {
+                  e.stopPropagation?.();
+                  action.onClick();
+                }}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -345,6 +471,38 @@ const ReplenishmentPage: React.FC = () => {
       </View>
 
       <View className={styles.list}>
+        {focusItems.length > 0 && (
+          <View style={{ marginBottom: 24 }}>
+            <View className={classnames(styles.groupHeader, styles.focusHeader)}>
+              <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Text className={styles.groupTitle}>
+                  🎯 来自：{focusIssueTitle}
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      color: '#165dff',
+                      marginLeft: 8,
+                      fontWeight: 400,
+                      background: 'rgba(22, 93, 255, 0.1)',
+                      padding: '2rpx 12rpx',
+                      borderRadius: 20
+                    }}
+                  >
+                    {focusItems.length}项
+                  </Text>
+                </Text>
+                <Text
+                  style={{ fontSize: 20, color: '#86909c' }}
+                  onClick={handleClearFocus}
+                >
+                  清除筛选 ×
+                </Text>
+              </View>
+            </View>
+            {focusItems.map(renderInspectionItem)}
+          </View>
+        )}
+
         {fromInspectionItems.length > 0 && (
           <View style={{ marginBottom: 24 }}>
             <View className={styles.groupHeader}>

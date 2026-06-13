@@ -298,7 +298,12 @@ const TaskDetailPage: React.FC = () => {
             <View
               className={styles.linkItem}
               style={{ cursor: 'pointer' }}
-              onClick={() => Taro.switchTab({ url: '/pages/replenishment/index' })}
+              onClick={() => {
+                if (task.linkedIssueId) {
+                  useRetailStore.getState().setFocusIssueId(task.linkedIssueId);
+                }
+                Taro.switchTab({ url: '/pages/replenishment/index' });
+              }}
             >
               <Text className={styles.linkLabel}>关联补货项</Text>
               <View style={{ flex: 1, textAlign: 'right' }}>

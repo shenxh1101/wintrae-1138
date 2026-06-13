@@ -82,8 +82,7 @@ const InspectionReportPage: React.FC = () => {
       location: location.trim(),
       photos: photos,
       reporter: '张店长',
-      linkedReplenishment: issueType === 'stock' && linkReplenishment,
-      linkedTaskId: undefined
+      linkedReplenishment: issueType === 'stock' && linkReplenishment
     });
 
     if (linkTask) {
@@ -95,9 +94,12 @@ const InspectionReportPage: React.FC = () => {
         assignee: assignee || employees[0].name,
         type: typeMap[issueType],
         priority: issueType === 'stock' || issueType === 'price' ? 'high' : 'medium',
-        deadline: deadline.toISOString()
+        deadline: deadline.toISOString(),
+        source: 'inspection',
+        linkedIssueId: issueId,
+        linkedIssueTitle: title.trim()
       });
-      useRetailStore.getState().updateInspectionIssue(issueId, { linkedTaskId: createdTaskId });
+      useRetailStore.getState().updateInspectionIssue(issueId, { linkedTaskIds: [createdTaskId] });
     }
 
     Taro.showLoading({ title: '提交中...' });
