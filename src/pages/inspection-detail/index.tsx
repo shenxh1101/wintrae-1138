@@ -4,7 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro';
 import styles from './index.module.scss';
 import classnames from 'classnames';
 import { useRetailStore } from '@/store';
-import { InspectionIssue } from '@/types';
+import { InspectionIssue, ReplenishmentItem } from '@/types';
 
 const TYPE_META: Record<string, { icon: string; label: string }> = {
   stock: { icon: '📦', label: '缺货问题' },
@@ -20,6 +20,12 @@ const STATUS_META = {
   resolved: { label: '已解决', class: styles.statusResolved }
 };
 
+const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  pending: { label: '待下单', color: '#ff7d00' },
+  ordered: { label: '已下单', color: '#165dff' },
+  completed: { label: '已完成', color: '#00b42a' }
+};
+
 const InspectionDetailPage: React.FC = () => {
   const router = useRouter();
   const issueId = router.params.id as string;
@@ -29,7 +35,8 @@ const InspectionDetailPage: React.FC = () => {
     getTaskById,
     tasks,
     replenishmentItems,
-    addReplenishmentFromIssue
+    addReplenishmentFromIssue,
+    syncIssueStatus
   } = useRetailStore();
 
   const [resolvedNote, setResolvedNote] = useState('');
@@ -40,10 +47,11 @@ const InspectionDetailPage: React.FC = () => {
     [issueId, getInspectionIssueById]
   );
 
-  const linkedTask = useMemo(() => {
-    if (!issue?.linkedTaskId) return null;
-    return getTaskById(issue.linkedTaskId);
-  }, [issue, getTaskById]);
+  const linkedTasks = useMemo(() => {
+    if (!issue) return [];
+    const ids = issue.linkedTaskIds || (issue.linkedTaskId ? [issue.linkedTaskId] : []);
+    return ids.map((id) => getTaskById(id)).filter(Boolean) as NonNullable<ReturnType<typeof getTaskById>>[];
+  }, [issue, getTaskById, tasks]);
 
   const linkedReplenishItems = useMemo(() => {
     if (!issue?.linkedReplenishmentItems?.length) return [];
@@ -72,6 +80,7 @@ const InspectionDetailPage: React.FC = () => {
 
   const handleStartProcess = () => {
     updateInspectionIssue(issue.id, { status: 'processing' });
+    syncIssueStatus(issue.id);
     Taro.showToast({ title: '已开始处理', icon: 'success' });
   };
 
@@ -89,29 +98,27 @@ const InspectionDetailPage: React.FC = () => {
       resolvedAt,
       resolvedNote: resolvedNote.trim() || undefined
     });
+    syncIssueStatus(issue.id);
     setShowResolveInput(false);
     Taro.showToast({ title: '已标记解决', icon: 'success' });
   };
 
   const handleReopen = () => {
     updateInspectionIssue(issue.id, { status: 'pending' });
+    syncIssueStatus(issue.id);
     Taro.showToast({ title: '已重新打开', icon: 'none' });
   };
 
-  const handleViewTask = () => {
-    if (!linkedTask) return;
-    Taro.navigateTo({ url: `/pages/task-detail/index?id=${linkedTask.id}` });
+  const handleViewTask = (taskId: string) => {
+    Taro.navigateTo({ url: `/pages/task-detail/index?id=${taskId}` });
   };
 
   const handleCreateTask = () => {
     Taro.navigateTo({ url: `/pages/tasks/index` });
   };
 
-  const handleViewReplenishment = (itemId: string) => {
-    Taro.switchTab({ url: '/pages/inventory/index' });
-    setTimeout(() => {
-      Taro.showToast({ title: '已跳转到补货建议', icon: 'none' });
-    }, 300);
+  const handleViewReplenishment = () => {
+    Taro.switchTab({ url: '/pages/replenishment/index' });
   };
 
   const handleAddReplenishment = () => {
@@ -134,6 +141,11 @@ const InspectionDetailPage: React.FC = () => {
       current: issue.photos[idx],
       urls: issue.photos
     });
+  };
+
+  const getOrderStatusDisplay = (item: ReplenishmentItem) => {
+    const s = item.orderStatus || 'pending';
+    return ORDER_STATUS_MAP[s] || ORDER_STATUS_MAP.pending;
   };
 
   const buildTimeline = () => {
@@ -170,24 +182,25 @@ const InspectionDetailPage: React.FC = () => {
       });
     }
 
-    if (issue.linkedTaskId && linkedTask) {
-      const taskText = `关联任务：${linkedTask.title}（${linkedTask.assignee}）`;
+    if (issue.linkedReplenishment && linkedReplenishItems.length > 0) {
+      const latest = linkedReplenishItems[0];
+      const orderInfo = latest.orderNo ? ` · 单号 ${latest.orderNo}` : '';
       items.splice(1, 0, {
-        time: linkedTask.createdAt,
-        title: '已生成员工任务',
-        desc: taskText,
+        time: latest.orderTime || issue.createdAt,
+        title: '已加入补货建议',
+        desc: `共 ${linkedReplenishItems.length} 项商品${orderInfo}`,
         dot: 'done'
       });
     }
 
-    if (issue.linkedReplenishment && linkedReplenishItems.length > 0) {
+    linkedTasks.forEach((t) => {
       items.splice(1, 0, {
-        time: issue.createdAt,
-        title: '已加入补货建议',
-        desc: `共 ${linkedReplenishItems.length} 项商品待补货`,
+        time: t.createdAt,
+        title: '已生成员工任务',
+        desc: `关联任务：${t.title}（${t.assignee}）`,
         dot: 'done'
       });
-    }
+    });
 
     return items;
   };
@@ -271,26 +284,43 @@ const InspectionDetailPage: React.FC = () => {
           {linkedReplenishItems.length === 0 ? (
             <View className={styles.emptyLink}>暂未关联补货项</View>
           ) : (
-            linkedReplenishItems.map((item) => (
-              <View
-                key={item.id}
-                className={classnames(styles.linkCard, styles.linkStock)}
-                onClick={() => handleViewReplenishment(item.id)}
-              >
-                <Text className={styles.linkIcon}>📦</Text>
-                <View className={styles.linkInfo}>
-                  <Text className={styles.linkTitle}>{item.name}</Text>
-                  <Text className={styles.linkSub}>
-                    {item.category} · 建议补货 {item.suggestedQty} 件
-                  </Text>
+            linkedReplenishItems.map((item) => {
+              const orderDisplay = getOrderStatusDisplay(item);
+              return (
+                <View
+                  key={item.id}
+                  className={classnames(styles.linkCard, styles.linkStock)}
+                  onClick={handleViewReplenishment}
+                >
+                  <Text className={styles.linkIcon}>📦</Text>
+                  <View className={styles.linkInfo}>
+                    <Text className={styles.linkTitle}>{item.name}</Text>
+                    <Text className={styles.linkSub}>
+                      {item.category} · 建议补货 {item.suggestedQty} 件
+                    </Text>
+                    <View style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                      <Text style={{ fontSize: 20, color: orderDisplay.color }}>
+                        {orderDisplay.label}
+                      </Text>
+                      {item.orderNo && (
+                        <Text style={{ fontSize: 20, color: '#86909c' }}>
+                          单号：{item.orderNo}
+                        </Text>
+                      )}
+                      {item.orderTime && (
+                        <Text style={{ fontSize: 20, color: '#86909c' }}>
+                          {item.orderTime}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Text className={styles.linkArrow}>›</Text>
                 </View>
-                <Text className={styles.linkArrow}>›</Text>
-              </View>
-            ))
+              );
+            })
           )}
           {issue.type === 'stock' && (
             <Button
-              className={actionBtn || 'action-btn'}
               onClick={handleAddReplenishment}
               style={{
                 marginTop: 16,
@@ -318,7 +348,7 @@ const InspectionDetailPage: React.FC = () => {
           >
             员工任务
           </Text>
-          {!linkedTask ? (
+          {linkedTasks.length === 0 ? (
             <View className={styles.emptyLink}>
               暂未关联处理任务
               <Text
@@ -329,19 +359,22 @@ const InspectionDetailPage: React.FC = () => {
               </Text>
             </View>
           ) : (
-            <View
-              className={classnames(styles.linkCard, styles.linkTask)}
-              onClick={handleViewTask}
-            >
-              <Text className={styles.linkIcon}>📋</Text>
-              <View className={styles.linkInfo}>
-                <Text className={styles.linkTitle}>{linkedTask.title}</Text>
-                <Text className={styles.linkSub}>
-                  负责人：{linkedTask.assignee} · {linkedTask.status === 'pending' ? '待处理' : linkedTask.status === 'doing' ? '进行中' : '已完成'}
-                </Text>
+            linkedTasks.map((task) => (
+              <View
+                key={task.id}
+                className={classnames(styles.linkCard, styles.linkTask)}
+                onClick={() => handleViewTask(task.id)}
+              >
+                <Text className={styles.linkIcon}>📋</Text>
+                <View className={styles.linkInfo}>
+                  <Text className={styles.linkTitle}>{task.title}</Text>
+                  <Text className={styles.linkSub}>
+                    负责人：{task.assignee} · {task.status === 'pending' ? '待处理' : task.status === 'doing' ? '进行中' : '已完成'}
+                  </Text>
+                </View>
+                <Text className={styles.linkArrow}>›</Text>
               </View>
-              <Text className={styles.linkArrow}>›</Text>
-            </View>
+            ))
           )}
         </View>
 

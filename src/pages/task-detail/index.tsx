@@ -13,7 +13,6 @@ const TaskDetailPage: React.FC = () => {
   const taskId = router.params.id || 'T001';
   const getTaskById = useRetailStore((s) => s.getTaskById);
   const updateTask = useRetailStore((s) => s.updateTask);
-  const addTask = useRetailStore((s) => s.addTask);
   const [task, setTask] = useState<Task | undefined>(() => getTaskById(taskId));
 
   const assignee = employees.find((e) => e.name === task?.assignee) || employees[0];
@@ -291,6 +290,20 @@ const TaskDetailPage: React.FC = () => {
               <View style={{ flex: 1, textAlign: 'right' }}>
                 <Text style={{ fontSize: 24, color: '#165dff' }}>
                   {task.linkedIssueTitle || '查看问题详情'} ›
+                </Text>
+              </View>
+            </View>
+          )}
+          {task.type === 'replenish' && task.linkedIssueId && (
+            <View
+              className={styles.linkItem}
+              style={{ cursor: 'pointer' }}
+              onClick={() => Taro.switchTab({ url: '/pages/replenishment/index' })}
+            >
+              <Text className={styles.linkLabel}>关联补货项</Text>
+              <View style={{ flex: 1, textAlign: 'right' }}>
+                <Text style={{ fontSize: 24, color: '#ff7d00' }}>
+                  查看补货建议 ›
                 </Text>
               </View>
             </View>

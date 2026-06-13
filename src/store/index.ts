@@ -4,6 +4,7 @@ import {
   Task,
   HandoverRecord,
   InspectionIssue,
+  InspectionIssueStatus,
   DailyExportRecord,
   ReplenishmentItem
 } from '@/types';
@@ -132,6 +133,8 @@ interface RetailState {
   toggleReplenishmentSelect: (id: string) => void;
   toggleAllReplenishment: (selected: boolean) => void;
   changeReplenishmentQty: (id: string, qty: number) => void;
+  submitReplenishmentOrder: (ids: string[]) => string;
+  syncIssueStatus: (issueId: string) => void;
 
   hydrateFromStorage: () => void;
   persistToStorage: () => void;
@@ -218,6 +221,11 @@ export const useRetailStore = create<RetailState>((set, get) => ({
     set((state) => ({
       inspectionIssues: state.inspectionIssues.map((i) =>
         i.id === id ? { ...i, ...patch } : i
+      ),
+      replenishmentItems: state.replenishmentItems.map((r) =>
+        r.sourceIssueId === id && patch.status
+          ? { ...r, sourceIssueStatus: patch.status as InspectionIssueStatus }
+          : r
       )
     }));
     get().persistToStorage();
@@ -316,6 +324,32 @@ export const useRetailStore = create<RetailState>((set, get) => ({
     set((state) => ({
       replenishmentItems: state.replenishmentItems.map((i) =>
         i.id === id ? { ...i, suggestedQty: Math.max(0, qty) } : i
+      )
+    }));
+    get().persistToStorage();
+  },
+
+  submitReplenishmentOrder: (ids) => {
+    const orderNo = `PO${Date.now()}`;
+    const orderTime = nowStr();
+    set((state) => ({
+      replenishmentItems: state.replenishmentItems.map((i) =>
+        ids.includes(i.id)
+          ? { ...i, orderStatus: 'ordered' as const, orderNo, orderTime }
+          : i
+      )
+    }));
+    get().persistToStorage();
+    return orderNo;
+  },
+
+  syncIssueStatus: (issueId) => {
+    const issue = get().inspectionIssues.find((i) => i.id === issueId);
+    if (!issue) return;
+    const newStatus = issue.status;
+    set((state) => ({
+      replenishmentItems: state.replenishmentItems.map((r) =>
+        r.sourceIssueId === issueId ? { ...r, sourceIssueStatus: newStatus } : r
       )
     }));
     get().persistToStorage();

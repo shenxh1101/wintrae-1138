@@ -5,12 +5,20 @@ import classnames from 'classnames';
 import styles from './index.module.scss';
 import { formatCurrency } from '@/utils/format';
 import { useRetailStore } from '@/store';
+import { ReplenishmentItem, ReplenishmentOrderStatus } from '@/types';
+
+const ORDER_STATUS_MAP: Record<ReplenishmentOrderStatus, { label: string; color: string; bg: string }> = {
+  pending: { label: '待下单', color: '#ff7d00', bg: 'rgba(255, 125, 0, 0.1)' },
+  ordered: { label: '已下单', color: '#165dff', bg: 'rgba(22, 93, 255, 0.1)' },
+  completed: { label: '已完成', color: '#00b42a', bg: 'rgba(0, 180, 42, 0.1)' }
+};
 
 const ReplenishmentPage: React.FC = () => {
   const replenishmentItems = useRetailStore((s) => s.replenishmentItems);
   const toggleReplenishmentSelect = useRetailStore((s) => s.toggleReplenishmentSelect);
   const toggleAllReplenishment = useRetailStore((s) => s.toggleAllReplenishment);
   const changeReplenishmentQty = useRetailStore((s) => s.changeReplenishmentQty);
+  const submitReplenishmentOrder = useRetailStore((s) => s.submitReplenishmentOrder);
   const inspectionIssues = useRetailStore((s) => s.inspectionIssues);
 
   const [searchText, setSearchText] = useState('');
@@ -103,29 +111,196 @@ const ReplenishmentPage: React.FC = () => {
     }
   };
 
+  const getLiveIssueStatus = (item: ReplenishmentItem): string | undefined => {
+    if (!item.sourceIssueId) return item.sourceIssueStatus;
+    const live = inspectionIssues.find((i) => i.id === item.sourceIssueId);
+    return live ? live.status : item.sourceIssueStatus;
+  };
+
+  const renderOrderBadge = (item: ReplenishmentItem) => {
+    const s: ReplenishmentOrderStatus = item.orderStatus || 'pending';
+    const meta = ORDER_STATUS_MAP[s];
+    return (
+      <Text
+        style={{
+          fontSize: 20,
+          color: meta.color,
+          background: meta.bg,
+          padding: '2rpx 12rpx',
+          borderRadius: 20,
+          marginLeft: 8
+        }}
+      >
+        {meta.label}
+      </Text>
+    );
+  };
+
   const handleSubmit = () => {
-    if (selectedItems.length === 0) {
-      Taro.showToast({ title: '请选择补货商品', icon: 'none' });
+    const pendingItems = selectedItems.filter((i) => !i.orderStatus || i.orderStatus === 'pending');
+    if (pendingItems.length === 0) {
+      Taro.showToast({ title: '选中的商品已全部下单', icon: 'none' });
       return;
     }
     Taro.showModal({
       title: '确认补货单',
-      content: `将向供应商提交补货订单：\n商品数：${selectedItems.length}种\n总数量：${totalQty}件\n总金额：${formatCurrency(totalAmount)}`,
+      content: `将向供应商提交补货订单：\n商品数：${pendingItems.length}种\n总数量：${totalQty}件\n总金额：${formatCurrency(totalAmount)}`,
       success: (res) => {
         if (res.confirm) {
+          const orderNo = submitReplenishmentOrder(pendingItems.map((i) => i.id));
           Taro.showLoading({ title: '提交中...' });
           setTimeout(() => {
             Taro.hideLoading();
             Taro.showModal({
               title: '下单成功',
-              content: `补货订单已提交，预计1-2个工作日送达门店。\n订单金额：${formatCurrency(totalAmount)}`,
+              content: `补货订单已提交，预计1-2个工作日送达门店。\n订单编号：${orderNo}\n订单金额：${formatCurrency(totalAmount)}`,
               showCancel: false,
-              success: () => Taro.navigateBack()
+              success: () => {}
             });
           }, 1200);
         }
       }
     });
+  };
+
+  const renderInspectionItem = (item: ReplenishmentItem) => {
+    const liveStatus = getLiveIssueStatus(item);
+    return (
+      <View key={item.id} className={classnames(styles.listItem, styles.itemFromInspection)}>
+        <View className={styles.itemTop}>
+          <View
+            className={classnames(styles.checkbox, item.selected && styles.checked)}
+            onClick={() => toggleSelect(item.id)}
+          >
+            {item.selected && '✓'}
+          </View>
+          <View className={styles.itemInfo}>
+            <View style={{ display: 'flex', alignItems: 'center' }}>
+              <Text className={styles.itemName}>{item.name}</Text>
+              {renderOrderBadge(item)}
+            </View>
+            <Text className={styles.itemCat}>{item.category}</Text>
+            <View className={styles.stockRow}>
+              <Text>
+                当前库存：
+                <Text
+                  className={
+                    item.currentStock <= 30 ? styles.stockLow : styles.stockValue
+                  }
+                >
+                  {item.currentStock}
+                </Text>
+              </Text>
+              <Text>
+                供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
+              </Text>
+            </View>
+            {item.orderNo && (
+              <View style={{ marginTop: 4 }}>
+                <Text style={{ fontSize: 20, color: '#86909c' }}>
+                  单号：{item.orderNo}
+                  {item.orderTime ? ` · ${item.orderTime}` : ''}
+                </Text>
+              </View>
+            )}
+            {item.sourceIssueTitle && (
+              <View
+                className={styles.sourceIssueRow}
+                onClick={() => handleViewIssue(item.sourceIssueId)}
+              >
+                <Text className={classnames(styles.sourceIssueTag, getIssueStatusClass(liveStatus))}>
+                  {getIssueStatusText(liveStatus)}
+                </Text>
+                <Text className={styles.sourceIssueText}>
+                  来源：{item.sourceIssueTitle} ›
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <View className={styles.itemBottom}>
+          <View className={styles.qtyControl}>
+            <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
+              -
+            </Button>
+            <Text className={styles.qtyNum}>{qtyMap[item.id] ?? item.suggestedQty}</Text>
+            <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
+              +
+            </Button>
+            <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
+          </View>
+          <View className={styles.priceInfo}>
+            <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
+            <Text className={styles.subTotal}>
+              {formatCurrency((qtyMap[item.id] ?? item.suggestedQty) * item.unitPrice)}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderNormalItem = (item: ReplenishmentItem) => {
+    return (
+      <View key={item.id} className={styles.listItem}>
+        <View className={styles.itemTop}>
+          <View
+            className={classnames(styles.checkbox, item.selected && styles.checked)}
+            onClick={() => toggleSelect(item.id)}
+          >
+            {item.selected && '✓'}
+          </View>
+          <View className={styles.itemInfo}>
+            <View style={{ display: 'flex', alignItems: 'center' }}>
+              <Text className={styles.itemName}>{item.name}</Text>
+              {renderOrderBadge(item)}
+            </View>
+            <Text className={styles.itemCat}>{item.category}</Text>
+            <View className={styles.stockRow}>
+              <Text>
+                当前库存：
+                <Text
+                  className={
+                    item.currentStock <= 30 ? styles.stockLow : styles.stockValue
+                  }
+                >
+                  {item.currentStock}
+                </Text>
+              </Text>
+              <Text>
+                供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
+              </Text>
+            </View>
+            {item.orderNo && (
+              <View style={{ marginTop: 4 }}>
+                <Text style={{ fontSize: 20, color: '#86909c' }}>
+                  单号：{item.orderNo}
+                  {item.orderTime ? ` · ${item.orderTime}` : ''}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <View className={styles.itemBottom}>
+          <View className={styles.qtyControl}>
+            <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
+              -
+            </Button>
+            <Text className={styles.qtyNum}>{qtyMap[item.id] ?? item.suggestedQty}</Text>
+            <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
+              +
+            </Button>
+            <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
+          </View>
+          <View className={styles.priceInfo}>
+            <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
+            <Text className={styles.subTotal}>
+              {formatCurrency((qtyMap[item.id] ?? item.suggestedQty) * item.unitPrice)}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -190,68 +365,7 @@ const ReplenishmentPage: React.FC = () => {
                 </Text>
               </Text>
             </View>
-            {fromInspectionItems.map((item) => (
-              <View key={item.id} className={classnames(styles.listItem, styles.itemFromInspection)}>
-                <View className={styles.itemTop}>
-                  <View
-                    className={classnames(styles.checkbox, item.selected && styles.checked)}
-                    onClick={() => toggleSelect(item.id)}
-                  >
-                    {item.selected && '✓'}
-                  </View>
-                  <View className={styles.itemInfo}>
-                    <Text className={styles.itemName}>{item.name}</Text>
-                    <Text className={styles.itemCat}>{item.category}</Text>
-                    <View className={styles.stockRow}>
-                      <Text>
-                        当前库存：
-                        <Text
-                          className={
-                            item.currentStock <= 30 ? styles.stockLow : styles.stockValue
-                          }
-                        >
-                          {item.currentStock}
-                        </Text>
-                      </Text>
-                      <Text>
-                        供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
-                      </Text>
-                    </View>
-                    {item.sourceIssueTitle && (
-                      <View
-                        className={styles.sourceIssueRow}
-                        onClick={() => handleViewIssue(item.sourceIssueId)}
-                      >
-                        <Text className={classnames(styles.sourceIssueTag, getIssueStatusClass(item.sourceIssueStatus))}>
-                          {getIssueStatusText(item.sourceIssueStatus)}
-                        </Text>
-                        <Text className={styles.sourceIssueText}>
-                          来源：{item.sourceIssueTitle} ›
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-                <View className={styles.itemBottom}>
-                  <View className={styles.qtyControl}>
-                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
-                      -
-                    </Button>
-                    <Text className={styles.qtyNum}>{qtyMap[item.id] ?? item.suggestedQty}</Text>
-                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
-                      +
-                    </Button>
-                    <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
-                  </View>
-                  <View className={styles.priceInfo}>
-                    <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
-                    <Text className={styles.subTotal}>
-                      {formatCurrency((qtyMap[item.id] ?? item.suggestedQty) * item.unitPrice)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
+            {fromInspectionItems.map(renderInspectionItem)}
           </View>
         )}
 
@@ -272,55 +386,7 @@ const ReplenishmentPage: React.FC = () => {
                 </Text>
               </Text>
             </View>
-            {normalItems.map((item) => (
-              <View key={item.id} className={styles.listItem}>
-                <View className={styles.itemTop}>
-                  <View
-                    className={classnames(styles.checkbox, item.selected && styles.checked)}
-                    onClick={() => toggleSelect(item.id)}
-                  >
-                    {item.selected && '✓'}
-                  </View>
-                  <View className={styles.itemInfo}>
-                    <Text className={styles.itemName}>{item.name}</Text>
-                    <Text className={styles.itemCat}>{item.category}</Text>
-                    <View className={styles.stockRow}>
-                      <Text>
-                        当前库存：
-                        <Text
-                          className={
-                            item.currentStock <= 30 ? styles.stockLow : styles.stockValue
-                          }
-                        >
-                          {item.currentStock}
-                        </Text>
-                      </Text>
-                      <Text>
-                        供应商：<Text className={styles.stockValue}>{item.supplier}</Text>
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View className={styles.itemBottom}>
-                  <View className={styles.qtyControl}>
-                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, -10)}>
-                      -
-                    </Button>
-                    <Text className={styles.qtyNum}>{qtyMap[item.id] ?? item.suggestedQty}</Text>
-                    <Button className={styles.qtyBtn} onClick={() => changeQty(item.id, 10)}>
-                      +
-                    </Button>
-                    <Text className={styles.qtySuggest}>建议{item.suggestedQty}</Text>
-                  </View>
-                  <View className={styles.priceInfo}>
-                    <Text className={styles.unitPrice}>{formatCurrency(item.unitPrice)}/件</Text>
-                    <Text className={styles.subTotal}>
-                      {formatCurrency((qtyMap[item.id] ?? item.suggestedQty) * item.unitPrice)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
+            {normalItems.map(renderNormalItem)}
           </View>
         )}
       </View>

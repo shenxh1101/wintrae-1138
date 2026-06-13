@@ -89,11 +89,14 @@ export interface InspectionIssue {
   createdAt: string;
   reporter: string;
   linkedTaskId?: string;
+  linkedTaskIds?: string[];
   linkedReplenishment?: boolean;
   linkedReplenishmentItems?: string[];
   resolvedAt?: string;
   resolvedNote?: string;
 }
+
+export type ReplenishmentOrderStatus = 'pending' | 'ordered' | 'completed';
 
 export interface ReplenishmentItem {
   id: string;
@@ -107,6 +110,9 @@ export interface ReplenishmentItem {
   sourceIssueId?: string;
   sourceIssueTitle?: string;
   sourceIssueStatus?: InspectionIssueStatus;
+  orderStatus?: ReplenishmentOrderStatus;
+  orderNo?: string;
+  orderTime?: string;
 }
 
 export interface Promotion {

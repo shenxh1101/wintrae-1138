@@ -154,6 +154,13 @@
   border-radius: $radius-md;
   padding: $spacing-md;
   border-left: 6rpx solid $color-warning;
+  margin-bottom: $spacing-md;
+}
+
+.historyCardActive {
+  border-left-color: $color-primary;
+  background: rgba(22, 93, 255, 0.04);
+  box-shadow: 0 0 0 2rpx rgba(22, 93, 255, 0.15);
 }
 
 .historyHeader {
